@@ -29,3 +29,7 @@ Et personligt kort over gode restauranter i København.
 - `type`: madtype på dansk med stort forbogstav (fx Italiensk, Fransk, Nordisk, Bar). Bliver til filtrene i appen.
 - `lat`/`lon`: koordinater. `approx: true` betyder omtrentlige; appen slår så adressen op og gør positionen præcis.
 - Fjern et sted ved at slette det fra listen.
+
+## Filmliste
+
+Mappen `film/` er en separat app: en Netflix-agtig oversigt over film og hvor de kan streames i Danmark (https://kappa1243.github.io/spisekort/film/). Se `film/README.md`.
