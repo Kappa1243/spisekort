@@ -100,6 +100,186 @@
       "lat": 55.6823438,
       "lon": 12.582034,
       "approx": false
+    },
+    {
+      "id": "restaurant-palaegade",
+      "name": "Restaurant Palægade",
+      "type": "Dansk",
+      "address": "Palægade 8, 1261 København K",
+      "note": "Smørrebrød til frokost og klassisk dansk-fransk aftenkøkken.",
+      "lat": 55.6838,
+      "lon": 12.5905,
+      "approx": true
+    },
+    {
+      "id": "schoennemann",
+      "name": "Schønnemann",
+      "type": "Dansk",
+      "address": "Hauser Plads 16, 1127 København K",
+      "note": "Klassisk smørrebrødsfrokost i kælderrestaurant fra 1877.",
+      "lat": 55.6825,
+      "lon": 12.573,
+      "approx": true
+    },
+    {
+      "id": "lumskebugten",
+      "name": "Lumskebugten",
+      "type": "Dansk",
+      "address": "Esplanaden 21, 1263 København K",
+      "note": "En af byens ældste restauranter; smørrebrød til frokost og dansk-fransk om aftenen.",
+      "lat": 55.68844,
+      "lon": 12.59798,
+      "approx": true
+    },
+    {
+      "id": "warpigs",
+      "name": "Warpigs Brewpub",
+      "type": "Amerikansk",
+      "address": "Flæsketorvet 25-37, 1711 København V",
+      "note": "Texas-barbecue og eget bryggeri i Kødbyen.",
+      "lat": 55.6687,
+      "lon": 12.5605,
+      "approx": true
+    },
+    {
+      "id": "bistro-royal",
+      "name": "Bistro Royal",
+      "type": "Fransk",
+      "address": "Kongens Nytorv 26, 1050 København K",
+      "note": "Fransk-dansk bistro ved Kongens Nytorv.",
+      "lat": 55.6797,
+      "lon": 12.5858,
+      "approx": true
+    },
+    {
+      "id": "silberbauers-bistro",
+      "name": "Silberbauers Bistro",
+      "type": "Fransk",
+      "address": "Jægersborggade 40, 2200 København N",
+      "note": "Fransk bistro med fokus på fisk og skaldyr.",
+      "lat": 55.6926,
+      "lon": 12.5428,
+      "approx": true
+    },
+    {
+      "id": "fabro",
+      "name": "Fabro",
+      "type": "Italiensk",
+      "address": "Borgergade 134, 1310 København K",
+      "note": "Uformel pastabar.",
+      "lat": 55.6878,
+      "lon": 12.5905,
+      "approx": true
+    },
+    {
+      "id": "mangia",
+      "name": "Mangia",
+      "type": "Italiensk",
+      "address": "Bagerstræde 9, 1617 København V",
+      "note": "Traditionelt italiensk med hjemmelavet pasta.",
+      "lat": 55.6716,
+      "lon": 12.552,
+      "approx": true
+    },
+    {
+      "id": "osteria-16-pesce",
+      "name": "Osteria 16 Pesce",
+      "type": "Italiensk",
+      "address": "Sønder Boulevard 54, 1720 København V",
+      "note": "Italiensk fiske-søsterrestaurant til Osteria 16.",
+      "lat": 55.666,
+      "lon": 12.552,
+      "approx": true
+    },
+    {
+      "id": "ripotot",
+      "name": "Ripotot",
+      "type": "Fransk",
+      "address": "Store Kongensgade 56, 1264 København K",
+      "note": "Fransk-inspireret sæsonmenu, der skifter dagligt.",
+      "lat": 55.6843,
+      "lon": 12.588,
+      "approx": true
+    },
+    {
+      "id": "resto-bar",
+      "name": "Resto Bar",
+      "type": "Italiensk",
+      "address": "Vesterbrogade 51, 1620 København V",
+      "note": "Italiensk comfort food på Vesterbro Torv.",
+      "lat": 55.6728,
+      "lon": 12.5545,
+      "approx": true
+    },
+    {
+      "id": "baka-d-busk",
+      "name": "Baka d'Busk",
+      "type": "Vegetarisk",
+      "address": "Rantzausgade 44, 2200 København N",
+      "note": "Vegetarisk plantebistro med delretter.",
+      "lat": 55.688,
+      "lon": 12.545,
+      "approx": true
+    },
+    {
+      "id": "esmee",
+      "name": "Esmée",
+      "type": "Fransk",
+      "address": "Kongens Nytorv 8, 1050 København K",
+      "note": "Fransk brasserie ved Kongens Nytorv.",
+      "lat": 55.6807,
+      "lon": 12.5845,
+      "approx": true
+    },
+    {
+      "id": "maison",
+      "name": "Maison",
+      "type": "Fransk",
+      "address": "Dronningens Tværgade 43, 1302 København K",
+      "note": "",
+      "lat": 55.6838,
+      "lon": 12.5888,
+      "approx": true
+    },
+    {
+      "id": "jatak",
+      "name": "Jatak",
+      "type": "Asiatisk",
+      "address": "Rantzausgade 39, 2200 København N",
+      "note": "Michelin-restaurant med kantonesisk og vietnamesisk inspireret menu på nordiske råvarer.",
+      "lat": 55.6882,
+      "lon": 12.5445,
+      "approx": true
+    },
+    {
+      "id": "sushi-anaba",
+      "name": "Sushi Anaba",
+      "type": "Japansk",
+      "address": "Mariehamngade 23, 2150 Nordhavn",
+      "note": "Edomae-sushi ved disken med nordiske fisk; Michelin-stjerne.",
+      "lat": 55.7127,
+      "lon": 12.601,
+      "approx": true
+    },
+    {
+      "id": "nr-30",
+      "name": "Nr.30",
+      "type": "Europæisk",
+      "address": "Nansensgade 30, 1366 København K",
+      "note": "Spisested og vinbar med skiftende sæsonmenu.",
+      "lat": 55.6835,
+      "lon": 12.5655,
+      "approx": true
+    },
+    {
+      "id": "moentergade",
+      "name": "Møntergade",
+      "type": "Dansk",
+      "address": "Møntergade 19, 1116 København K",
+      "note": "Brasserie med smørrebrød og mange slags sild.",
+      "lat": 55.6821,
+      "lon": 12.5788,
+      "approx": true
     }
   ]
 }
