@@ -11,6 +11,7 @@ En Netflix-agtig oversigt over Markus' film og hvor de kan streames i Danmark.
 {
   "updated": "2026-10-29",
   "country": "DK",
+  "app": 4,
   "films": [
     {
       "id": "dune-part-two",
@@ -46,3 +47,7 @@ En Netflix-agtig oversigt over Markus' film og hvor de kan streames i Danmark.
 - Køb registreres ikke.
 - `poster`: plakat fra JustWatch (`images.justwatch.com/poster/<id>/s332/<slug>.jpg`). Hvis den ikke kan hentes, prøver appen Wikipedia-artiklen i `wiki` (engelsk titel), og ellers vises et farvet titelkort.
 - `checked`: datoen, hvor streaming-udbuddet sidst blev tjekket.
+
+## Opdatering af selve appen
+
+`index.html` kan ligge gemt i browseren i et stykke tid. Derfor har appen et versionsnummer: `APP_VERSION` i `index.html` og `"app"` i `films.json`. Når `index.html` ændres, hæves begge tal med 1 – så genindlæser telefoner og computere med en gammel udgave selv siden.

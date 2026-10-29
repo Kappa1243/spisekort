@@ -215,6 +215,9 @@ var LIST_URLS=[
   "films.json"
 ];
 var CACHE_KEY="filmliste.cache.v2";
+/* Appens version. Når index.html ændres, hæves tallet her OG "app" i films.json,
+   så telefoner med en gammel, gemt udgave af siden selv henter den nye. */
+var APP_VERSION=4;
 
 /* Danske tjenester: farve */
 var SERVICES={
@@ -508,6 +511,10 @@ var lastSync=0;
 function sync(){
   if(Date.now()-lastSync<15000)return;lastSync=Date.now();
   fetchList(0).then(function(d){
+    if(d&&+d.app>APP_VERSION){
+      var k="filmliste.reload."+d.app,tried=false;try{tried=sessionStorage.getItem(k)}catch(e){}
+      if(!tried){try{sessionStorage.setItem(k,"1")}catch(e){}location.replace(location.pathname+"?v="+d.app+location.hash);return}
+    }
     /* tegn kun siden igen, hvis listen faktisk er ændret – så plakaterne ikke blinker */
     if(cached&&sameData(cached.data,d))return;
     var had=!!cached;cached={at:Date.now(),data:d};writeJSON(CACHE_KEY,cached);setData(d,had);
