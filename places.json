@@ -1,0 +1,95 @@
+{
+  "updated": "2026-10-28",
+  "places": [
+    {
+      "id": "bar-solis",
+      "name": "Bar Solis",
+      "type": "Bar",
+      "address": "Enghavevej 20A, 1674 København V",
+      "note": "Køkkenet har åbent tirsdag-lørdag kl. 17-21.",
+      "lat": 55.6682,
+      "lon": 12.5452,
+      "approx": true
+    },
+    {
+      "id": "mudan",
+      "name": "Mudan",
+      "type": "Kinesisk",
+      "address": "Dirch Passers Allé 30, 2000 Frederiksberg",
+      "note": "Nord- og nordøstkinesisk køkken.",
+      "lat": 55.6868,
+      "lon": 12.5005,
+      "approx": true
+    },
+    {
+      "id": "restaurant-alf",
+      "name": "Restaurant Alf",
+      "type": "Nordisk",
+      "address": "Gammel Kongevej 86A, 1850 Frederiksberg C",
+      "note": "Nynordisk med fransk præg, tæt på Frederiksberg Have.",
+      "lat": 55.6776,
+      "lon": 12.5428,
+      "approx": true
+    },
+    {
+      "id": "saji",
+      "name": "Saji",
+      "type": "Indonesisk",
+      "address": "Studiestræde 14, 1455 København K",
+      "note": "",
+      "lat": 55.6779,
+      "lon": 12.5693,
+      "approx": true
+    },
+    {
+      "id": "bar-moro",
+      "name": "Bar Moro",
+      "type": "Middelhavs",
+      "address": "Blegdamsvej 36, 2200 København N",
+      "note": "Middelhavskøkken med dansk præg.",
+      "lat": 55.6931,
+      "lon": 12.5672,
+      "approx": true
+    },
+    {
+      "id": "masseria",
+      "name": "Masseria",
+      "type": "Italiensk",
+      "address": "Flæsketorvet 50, 1711 København V",
+      "note": "Syditaliensk pastatrattoria i Kødbyen.",
+      "lat": 55.669,
+      "lon": 12.5592,
+      "approx": true
+    },
+    {
+      "id": "safari",
+      "name": "Safari",
+      "type": "Europæisk",
+      "address": "Baggesensgade 9, 2200 København N",
+      "note": "Mest grønne retter med inspiration fra Central- og Sydeuropa. Er også bar.",
+      "lat": 55.6893,
+      "lon": 12.5602,
+      "approx": true
+    },
+    {
+      "id": "locale-21",
+      "name": "Locale 21",
+      "type": "Italiensk",
+      "address": "Ny Østergade 21, 1101 København K",
+      "note": "Pastabistro.",
+      "lat": 55.6813,
+      "lon": 12.5846,
+      "approx": true
+    },
+    {
+      "id": "donda-khana",
+      "name": "Donda Khana",
+      "type": "Indisk",
+      "address": "Strandgade 20, 1401 København K",
+      "note": "Moderne sydasiatisk med fokus på fisk og skaldyr.",
+      "lat": 55.6746,
+      "lon": 12.5918,
+      "approx": true
+    }
+  ]
+}
