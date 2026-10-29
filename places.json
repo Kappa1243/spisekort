@@ -1,5 +1,5 @@
 {
-  "updated": "2026-10-28",
+  "updated": "2026-10-29",
   "places": [
     {
       "id": "bar-solis",
@@ -90,6 +90,16 @@
       "lat": 55.6746,
       "lon": 12.5918,
       "approx": true
+    },
+    {
+      "id": "pastis",
+      "name": "Pastis",
+      "type": "Fransk",
+      "address": "Gothersgade 52, 1123 København K",
+      "note": "Klassisk fransk bistro med moules frites, escargots og skiftende dagens ret.",
+      "lat": 55.6823438,
+      "lon": 12.582034,
+      "approx": false
     }
   ]
 }
