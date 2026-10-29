@@ -7,14 +7,40 @@
       "title": "Dune: Part Two",
       "year": 2024,
       "runtime": 167,
-      "genres": ["Sci-fi", "Eventyr", "Action"],
+      "genres": [
+        "Sci-fi",
+        "Eventyr",
+        "Action"
+      ],
       "note": "Paul Atreides slutter sig til fremenfolket i Denis Villeneuves anden del af Frank Herberts ørkenepos.",
       "poster": "https://images.justwatch.com/poster/312362420/s332/dune-part-two.jpg",
       "wiki": "Dune: Part Two",
       "justwatch": "https://www.justwatch.com/dk/movie/dune-part-two",
-      "stream": ["HBO Max"],
-      "rent": ["Apple TV", "Amazon Video", "Rakuten TV", "Viaplay", "SF Anytime"],
-      "buy": ["Apple TV", "Amazon Video", "Rakuten TV", "Viaplay", "SF Anytime"],
+      "stream": [
+        "HBO Max"
+      ],
+      "rent": [
+        {
+          "service": "Apple TV",
+          "price": 39
+        },
+        {
+          "service": "Amazon Video",
+          "price": 39
+        },
+        {
+          "service": "Rakuten TV",
+          "price": 49
+        },
+        {
+          "service": "Viaplay",
+          "price": 59
+        },
+        {
+          "service": "SF Anytime",
+          "price": 59
+        }
+      ],
       "checked": "2026-10-29"
     },
     {
@@ -23,14 +49,41 @@
       "originalTitle": "Another Round",
       "year": 2020,
       "runtime": 117,
-      "genres": ["Drama", "Komedie"],
+      "genres": [
+        "Drama",
+        "Komedie"
+      ],
       "note": "Fire gymnasielærere afprøver en teori om at holde promillen konstant. Oscar for bedste internationale film.",
       "poster": "https://images.justwatch.com/poster/320955074/s332/another-round.jpg",
       "wiki": "Another Round (film)",
       "justwatch": "https://www.justwatch.com/dk/movie/another-round",
-      "stream": ["Netflix", "HBO Max", "Disney+", "Viaplay", "Prime Video", "Nordisk Film+", "Allente"],
-      "rent": ["Amazon Video", "Apple TV", "Rakuten TV", "SF Anytime"],
-      "buy": ["Amazon Video", "Apple TV", "Rakuten TV", "SF Anytime"],
+      "stream": [
+        "Netflix",
+        "HBO Max",
+        "Disney+",
+        "Viaplay",
+        "Prime Video",
+        "Nordisk Film+",
+        "Allente"
+      ],
+      "rent": [
+        {
+          "service": "Amazon Video",
+          "price": 29
+        },
+        {
+          "service": "Apple TV",
+          "price": 39
+        },
+        {
+          "service": "Rakuten TV",
+          "price": 39
+        },
+        {
+          "service": "SF Anytime",
+          "price": 49
+        }
+      ],
       "checked": "2026-10-29"
     },
     {
@@ -38,14 +91,19 @@
       "title": "Glass Onion: A Knives Out Mystery",
       "year": 2022,
       "runtime": 140,
-      "genres": ["Krimi", "Komedie", "Mysterie"],
+      "genres": [
+        "Krimi",
+        "Komedie",
+        "Mysterie"
+      ],
       "note": "Detektiven Benoit Blanc opklarer et mord på en græsk ø hos en tech-milliardær.",
       "poster": "https://images.justwatch.com/poster/301342724/s332/knives-out-2.jpg",
       "wiki": "Glass Onion: A Knives Out Mystery",
       "justwatch": "https://www.justwatch.com/dk/movie/knives-out-2",
-      "stream": ["Netflix"],
+      "stream": [
+        "Netflix"
+      ],
       "rent": [],
-      "buy": [],
       "checked": "2026-10-29"
     },
     {
@@ -54,14 +112,40 @@
       "danishTitle": "Inderst inde 2",
       "year": 2024,
       "runtime": 97,
-      "genres": ["Animation", "Familie", "Komedie"],
+      "genres": [
+        "Animation",
+        "Familie",
+        "Komedie"
+      ],
       "note": "Pixar-efterfølger hvor teenageren Rileys følelser får selskab af Angst og flere nye følelser.",
       "poster": "https://images.justwatch.com/poster/351470907/s332/inside-out-2.jpg",
       "wiki": "Inside Out 2",
       "justwatch": "https://www.justwatch.com/dk/movie/inside-out-2",
-      "stream": ["Disney+"],
-      "rent": ["Apple TV", "Rakuten TV", "Amazon Video", "SF Anytime", "Viaplay"],
-      "buy": ["SF Anytime", "Amazon Video", "Apple TV", "Rakuten TV", "Viaplay"],
+      "stream": [
+        "Disney+"
+      ],
+      "rent": [
+        {
+          "service": "Apple TV",
+          "price": 39
+        },
+        {
+          "service": "Rakuten TV",
+          "price": 39
+        },
+        {
+          "service": "Amazon Video",
+          "price": 39
+        },
+        {
+          "service": "SF Anytime",
+          "price": 49
+        },
+        {
+          "service": "Viaplay",
+          "price": 59
+        }
+      ],
       "checked": "2026-10-29"
     },
     {
@@ -69,14 +153,38 @@
       "title": "Oppenheimer",
       "year": 2023,
       "runtime": 180,
-      "genres": ["Drama", "Historie", "Biografi"],
+      "genres": [
+        "Drama",
+        "Historie",
+        "Biografi"
+      ],
       "note": "Christopher Nolans film om fysikeren J. Robert Oppenheimer og udviklingen af atombomben.",
       "poster": "https://images.justwatch.com/poster/305252655/s332/oppenheimer.jpg",
       "wiki": "Oppenheimer (film)",
       "justwatch": "https://www.justwatch.com/dk/movie/oppenheimer",
       "stream": [],
-      "rent": ["Viaplay", "Apple TV", "Rakuten TV", "Amazon Video", "SF Anytime"],
-      "buy": ["Apple TV", "Rakuten TV", "Amazon Video", "Viaplay", "SF Anytime"],
+      "rent": [
+        {
+          "service": "Viaplay",
+          "price": 39
+        },
+        {
+          "service": "Apple TV",
+          "price": 39
+        },
+        {
+          "service": "Rakuten TV",
+          "price": 39
+        },
+        {
+          "service": "Amazon Video",
+          "price": 39
+        },
+        {
+          "service": "SF Anytime",
+          "price": 49
+        }
+      ],
       "checked": "2026-10-29"
     },
     {
@@ -84,14 +192,39 @@
       "title": "Top Gun: Maverick",
       "year": 2022,
       "runtime": 131,
-      "genres": ["Action", "Drama"],
+      "genres": [
+        "Action",
+        "Drama"
+      ],
       "note": "Tom Cruise vender tilbage som Maverick, der skal træne en ny generation af jagerpiloter.",
       "poster": "https://images.justwatch.com/poster/331624779/s332/top-gun-maverick.jpg",
       "wiki": "Top Gun: Maverick",
       "justwatch": "https://www.justwatch.com/dk/movie/top-gun-maverick",
-      "stream": ["SkyShowtime"],
-      "rent": ["Apple TV", "Rakuten TV", "Amazon Video", "Viaplay", "SF Anytime"],
-      "buy": ["Apple TV", "Amazon Video", "Viaplay", "SF Anytime"],
+      "stream": [
+        "SkyShowtime"
+      ],
+      "rent": [
+        {
+          "service": "Apple TV",
+          "price": 39
+        },
+        {
+          "service": "Rakuten TV",
+          "price": 39
+        },
+        {
+          "service": "Amazon Video",
+          "price": 39
+        },
+        {
+          "service": "Viaplay",
+          "price": 49
+        },
+        {
+          "service": "SF Anytime",
+          "price": 49
+        }
+      ],
       "checked": "2026-10-29"
     }
   ]
