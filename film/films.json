@@ -4,45 +4,43 @@
   "app": 5,
   "films": [
     {
-      "id": "mr-turner",
-      "title": "Mr. Turner",
-      "year": 2014,
-      "runtime": 150,
+      "id": "tuner",
+      "title": "Tuner",
+      "year": 2025,
+      "runtime": 108,
       "genres": [
-        "Biografi",
+        "Krimi",
         "Drama",
-        "Historie"
+        "Thriller"
       ],
-      "note": "Mike Leighs portræt af maleren J.M.W. Turners sidste 25 år, med Timothy Spall i titelrollen.",
-      "poster": "https://images.justwatch.com/poster/200430429/s332/mr-turner.jpg",
-      "wiki": "Mr. Turner",
-      "justwatch": "https://www.justwatch.com/dk/movie/mr-turner",
-      "free": [
-        "Filmstriben"
-      ],
+      "note": "En pianostemmer med usædvanlig skarp hørelse bliver hvervet til at åbne pengeskabe. Med Leo Woodall og Dustin Hoffman.",
+      "poster": "https://images.justwatch.com/poster/344868167/s332/tuner.jpg",
+      "wiki": "Tuner (film)",
+      "justwatch": "https://www.justwatch.com/dk/movie/tuner",
+      "stream": [],
+      "free": [],
       "rent": [
         {
-          "service": "Blockbuster",
-          "price": 19
-        },
-        {
           "service": "Apple TV",
-          "price": 39
-        },
-        {
-          "service": "Viaplay",
           "price": 49
         },
         {
-          "service": "SF Anytime",
+          "service": "Rakuten TV",
           "price": 49
         },
         {
           "service": "Amazon Video",
           "price": 49
+        },
+        {
+          "service": "Viaplay",
+          "price": 59
+        },
+        {
+          "service": "SF Anytime",
+          "price": 59
         }
       ],
-      "stream": [],
       "checked": "2026-10-30",
       "added": "2026-10-30"
     },
