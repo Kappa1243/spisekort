@@ -45,8 +45,13 @@ En Netflix-agtig oversigt over Markus' film og hvor de kan streames i Danmark.
 - `free`: gratis (fx DRTV-film uden login, Filmstriben via bibliotek).
 - `rent`: leje med pris i kr. (HD-prisen, hvis der er flere). Tjenester: Apple TV, Amazon Video, Rakuten TV, SF Anytime, Viaplay, Google Play, Blockbuster. Appen sorterer selv efter billigste pris og viser "Lej fra …" på film, der ikke kan streames.
 - Køb registreres ikke.
+- Film uden både `stream`, `free` og `rent` (kan hverken streames eller lejes i DK) vises ikke på forsiden, men på en separat liste: fanen **Ikke tilgængelig** og linket nederst på forsiden.
 - `poster`: plakat fra JustWatch (`images.justwatch.com/poster/<id>/s332/<slug>.jpg`). Hvis den ikke kan hentes, prøver appen Wikipedia-artiklen i `wiki` (engelsk titel), og ellers vises et farvet titelkort.
 - `checked`: datoen, hvor streaming-udbuddet sidst blev tjekket.
+
+## Ikon
+
+Hjemmeskærmsikonet er `icon-180.png` (iPhone) og `icon-512.png` (Android, via `manifest.webmanifest`).
 
 ## Opdatering af selve appen
 
