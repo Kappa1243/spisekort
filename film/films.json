@@ -1,75 +1,201 @@
 {
-  "updated": "2026-10-29",
+  "updated": "2026-10-30",
   "country": "DK",
   "app": 4,
   "films": [
     {
-      "id": "dune-part-two",
-      "title": "Dune: Part Two",
-      "year": 2024,
-      "runtime": 167,
+      "id": "mr-turner",
+      "title": "Mr. Turner",
+      "year": 2014,
+      "runtime": 150,
       "genres": [
-        "Sci-fi",
-        "Eventyr",
-        "Action"
+        "Biografi",
+        "Drama",
+        "Historie"
       ],
-      "note": "Paul Atreides slutter sig til fremenfolket i Denis Villeneuves anden del af Frank Herberts ørkenepos.",
-      "poster": "https://images.justwatch.com/poster/312362420/s332/dune-part-two.jpg",
-      "wiki": "Dune: Part Two",
-      "justwatch": "https://www.justwatch.com/dk/movie/dune-part-two",
-      "stream": [
-        "HBO Max"
+      "note": "Mike Leighs portræt af maleren J.M.W. Turners sidste 25 år, med Timothy Spall i titelrollen.",
+      "poster": "https://images.justwatch.com/poster/200430429/s332/mr-turner.jpg",
+      "wiki": "Mr. Turner",
+      "justwatch": "https://www.justwatch.com/dk/movie/mr-turner",
+      "free": [
+        "Filmstriben"
       ],
       "rent": [
+        {
+          "service": "Blockbuster",
+          "price": 19
+        },
         {
           "service": "Apple TV",
           "price": 39
         },
         {
+          "service": "Viaplay",
+          "price": 49
+        },
+        {
+          "service": "SF Anytime",
+          "price": 49
+        },
+        {
           "service": "Amazon Video",
+          "price": 49
+        }
+      ],
+      "stream": [],
+      "checked": "2026-10-30",
+      "added": "2026-10-30"
+    },
+    {
+      "id": "last-vegas",
+      "title": "Last Vegas",
+      "year": 2013,
+      "runtime": 105,
+      "genres": [
+        "Komedie"
+      ],
+      "note": "Fire barndomsvenner i 70erne tager til Las Vegas for at holde polterabend for den sidste ungkarl i flokken.",
+      "poster": "https://images.justwatch.com/poster/302305523/s332/last-vegas.jpg",
+      "wiki": "Last Vegas",
+      "justwatch": "https://www.justwatch.com/dk/movie/last-vegas",
+      "rent": [
+        {
+          "service": "Blockbuster",
+          "price": 29
+        },
+        {
+          "service": "Apple TV",
           "price": 39
         },
         {
           "service": "Rakuten TV",
-          "price": 49
+          "price": 39
+        },
+        {
+          "service": "Amazon Video",
+          "price": 39
         },
         {
           "service": "Viaplay",
-          "price": 59
+          "price": 49
         },
         {
           "service": "SF Anytime",
-          "price": 59
+          "price": 49
         }
       ],
-      "checked": "2026-10-29"
+      "free": [],
+      "stream": [],
+      "checked": "2026-10-30",
+      "added": "2026-10-30"
     },
     {
-      "id": "druk",
-      "title": "Druk",
-      "originalTitle": "Another Round",
-      "year": 2020,
-      "runtime": 117,
+      "id": "ambassadoeren",
+      "title": "Ambassadøren",
+      "originalTitle": "The Ambassador",
+      "year": 2011,
+      "runtime": 93,
       "genres": [
-        "Drama",
-        "Komedie"
+        "Dokumentar"
       ],
-      "note": "Fire gymnasielærere afprøver en teori om at holde promillen konstant. Oscar for bedste internationale film.",
-      "poster": "https://images.justwatch.com/poster/320955074/s332/another-round.jpg",
-      "wiki": "Another Round (film)",
-      "justwatch": "https://www.justwatch.com/dk/movie/another-round",
+      "note": "Mads Brügger køber sig til en liberisk diplomattitel og afslører diamanthandel og korruption i Den Centralafrikanske Republik.",
+      "poster": "",
+      "wiki": "The Ambassador (2011 film)",
+      "justwatch": "https://www.justwatch.com/dk/movie/the-ambassador",
+      "rent": [
+        {
+          "service": "SF Anytime",
+          "price": null
+        }
+      ],
+      "free": [],
+      "stream": [],
+      "checked": "2026-10-30",
+      "added": "2026-10-30"
+    },
+    {
+      "id": "tenzing",
+      "title": "Tenzing",
+      "year": 2026,
+      "runtime": 125,
+      "genres": [
+        "Biografi",
+        "Eventyr",
+        "Drama"
+      ],
+      "note": "Jennifer Peedoms film om sherpaen Tenzing Norgay, der i 1953 nåede toppen af Everest sammen med Edmund Hillary.",
+      "poster": "https://images.justwatch.com/poster/354677231/s332/tenzing.jpg",
+      "wiki": "Tenzing (film)",
+      "justwatch": "https://www.justwatch.com/dk/movie/tenzing",
       "stream": [
-        "Netflix",
-        "HBO Max",
-        "Disney+",
-        "Viaplay",
-        "Prime Video",
-        "Nordisk Film+",
+        "Apple TV+",
         "Allente"
+      ],
+      "free": [],
+      "rent": [],
+      "checked": "2026-10-30",
+      "added": "2026-10-30"
+    },
+    {
+      "id": "sherpa",
+      "title": "Sherpa",
+      "year": 2015,
+      "runtime": 96,
+      "genres": [
+        "Dokumentar"
+      ],
+      "note": "Dokumentar om sherpaerne på Everest i klatresæsonen 2014, hvor en stor lavine ændrede alt.",
+      "poster": "",
+      "wiki": "Sherpa (2015 film)",
+      "justwatch": "https://www.justwatch.com/dk/movie/sherpa",
+      "stream": [
+        "SkyShowtime",
+        "Allente"
+      ],
+      "free": [],
+      "rent": [],
+      "checked": "2026-10-30",
+      "added": "2026-10-30"
+    },
+    {
+      "id": "digger",
+      "title": "Digger",
+      "year": 2026,
+      "runtime": 129,
+      "genres": [
+        "Komedie",
+        "Drama"
+      ],
+      "note": "Alejandro G. Iñárritus satire med Tom Cruise som oliemagnaten Digger Rockwell, der udløser en økologisk katastrofe.",
+      "poster": "",
+      "wiki": "Digger (2026 film)",
+      "justwatch": "https://www.justwatch.com/dk/movie/digger-2026",
+      "free": [],
+      "stream": [],
+      "rent": [],
+      "checked": "2026-10-30",
+      "added": "2026-10-30"
+    },
+    {
+      "id": "de-uroerlige",
+      "title": "Intouchables",
+      "danishTitle": "De urørlige",
+      "year": 2011,
+      "runtime": 112,
+      "genres": [
+        "Komedie",
+        "Drama"
+      ],
+      "note": "Fransk hit om venskabet mellem en lam aristokrat og hans uortodokse hjælper fra forstæderne. Bygger på en sand historie.",
+      "poster": "https://images.justwatch.com/poster/306832957/s332/the-intouchables.jpg",
+      "wiki": "The Intouchables",
+      "justwatch": "https://www.justwatch.com/dk/movie/the-intouchables",
+      "free": [
+        "Filmstriben"
       ],
       "rent": [
         {
-          "service": "Amazon Video",
+          "service": "Blockbuster",
           "price": 29
         },
         {
@@ -85,69 +211,50 @@
           "price": 49
         }
       ],
-      "checked": "2026-10-29"
+      "stream": [],
+      "checked": "2026-10-30",
+      "added": "2026-10-30"
     },
     {
-      "id": "glass-onion",
-      "title": "Glass Onion: A Knives Out Mystery",
+      "id": "the-greatest-beer-run-ever",
+      "title": "The Greatest Beer Run Ever",
       "year": 2022,
-      "runtime": 140,
+      "runtime": 126,
       "genres": [
-        "Krimi",
+        "Drama",
         "Komedie",
-        "Mysterie"
+        "Krig"
       ],
-      "note": "Detektiven Benoit Blanc opklarer et mord på en græsk ø hos en tech-milliardær.",
-      "poster": "https://images.justwatch.com/poster/301342724/s332/knives-out-2.jpg",
-      "wiki": "Glass Onion: A Knives Out Mystery",
-      "justwatch": "https://www.justwatch.com/dk/movie/knives-out-2",
+      "note": "Zac Efron spiller en New Yorker, der i 1967 rejser til Vietnam for at give sine venner ved fronten en øl. Bygger på en sand historie.",
+      "poster": "",
+      "wiki": "The Greatest Beer Run Ever",
+      "justwatch": "https://www.justwatch.com/dk/movie/the-greatest-beer-run-ever",
       "stream": [
-        "Netflix"
+        "Apple TV+"
       ],
+      "free": [],
       "rent": [],
-      "checked": "2026-10-29"
+      "checked": "2026-10-30",
+      "added": "2026-10-30"
     },
     {
-      "id": "inside-out-2",
-      "title": "Inside Out 2",
-      "danishTitle": "Inderst inde 2",
-      "year": 2024,
-      "runtime": 97,
+      "id": "the-invite",
+      "title": "The Invite",
+      "year": 2026,
+      "runtime": 107,
       "genres": [
-        "Animation",
-        "Familie",
-        "Komedie"
+        "Komedie",
+        "Drama"
       ],
-      "note": "Pixar-efterfølger hvor teenageren Rileys følelser får selskab af Angst og flere nye følelser.",
-      "poster": "https://images.justwatch.com/poster/351470907/s332/inside-out-2.jpg",
-      "wiki": "Inside Out 2",
-      "justwatch": "https://www.justwatch.com/dk/movie/inside-out-2",
-      "stream": [
-        "Disney+"
-      ],
-      "rent": [
-        {
-          "service": "Apple TV",
-          "price": 39
-        },
-        {
-          "service": "Rakuten TV",
-          "price": 39
-        },
-        {
-          "service": "Amazon Video",
-          "price": 39
-        },
-        {
-          "service": "SF Anytime",
-          "price": 49
-        },
-        {
-          "service": "Viaplay",
-          "price": 59
-        }
-      ],
-      "checked": "2026-10-29"
+      "note": "Olivia Wilde instruerer og spiller med i en middagskomedie, hvor et kriseramt par inviterer naboerne ovenpå til middag.",
+      "poster": "",
+      "wiki": "The Invite",
+      "justwatch": "https://www.justwatch.com/dk/movie/the-invite-2026",
+      "free": [],
+      "stream": [],
+      "rent": [],
+      "checked": "2026-10-30",
+      "added": "2026-10-30"
     },
     {
       "id": "oppenheimer",
@@ -189,21 +296,19 @@
       "checked": "2026-10-29"
     },
     {
-      "id": "top-gun-maverick",
-      "title": "Top Gun: Maverick",
-      "year": 2022,
-      "runtime": 131,
+      "id": "12-angry-men",
+      "title": "12 Angry Men",
+      "danishTitle": "Tolv vrede mænd",
+      "year": 1957,
+      "runtime": 96,
       "genres": [
-        "Action",
-        "Drama"
+        "Drama",
+        "Krimi"
       ],
-      "note": "Tom Cruise vender tilbage som Maverick, der skal træne en ny generation af jagerpiloter.",
-      "poster": "https://images.justwatch.com/poster/331624779/s332/top-gun-maverick.jpg",
-      "wiki": "Top Gun: Maverick",
-      "justwatch": "https://www.justwatch.com/dk/movie/top-gun-maverick",
-      "stream": [
-        "SkyShowtime"
-      ],
+      "note": "Sidney Lumets klassiker, hvor tolv nævninger i ét lokale skal blive enige om en drabsdom.",
+      "poster": "https://images.justwatch.com/poster/304799139/s332/12-angry-men.jpg",
+      "wiki": "12 Angry Men (1957 film)",
+      "justwatch": "https://www.justwatch.com/dk/movie/12-angry-men",
       "rent": [
         {
           "service": "Apple TV",
@@ -218,15 +323,14 @@
           "price": 39
         },
         {
-          "service": "Viaplay",
-          "price": 49
-        },
-        {
           "service": "SF Anytime",
           "price": 49
         }
       ],
-      "checked": "2026-10-29"
+      "free": [],
+      "stream": [],
+      "checked": "2026-10-30",
+      "added": "2026-10-30"
     }
   ]
 }
