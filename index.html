@@ -1263,7 +1263,8 @@ function copyText(t){
 /* ---------- filters & map buttons ---------- */
 $('#chips').addEventListener('click',function(e){
   var b=e.target.closest('[data-type]');if(!b)return;
-  filter=b.getAttribute('data-type');
+  var t=b.getAttribute('data-type');
+  filter=(t===filter&&t!=='Alle')?'Alle':t;
   if(selected&&!computeList().some(function(p){return p.id===selected})){selected=null;if(view==='place')setView('list','mid')}
   refresh();fitView();
 });
