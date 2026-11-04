@@ -777,11 +777,10 @@ ol#list{list-style:none;margin:0;padding:0}
 #pName .mich{margin-left:8px;vertical-align:1px}
 #pName .mich svg{width:17px;height:17px}
 .idist{font-size:14px;font-weight:600;color:var(--muted);white-space:nowrap}
-.price{display:inline-flex;align-items:center;gap:2px;margin-left:8px;vertical-align:-1px}
-.price i{display:block;width:9px;height:9px;border-radius:50%;background:var(--ink)}
-.price i.off{background:#d6dadf}
-#pMeta .price{margin-left:6px;vertical-align:0}
-#pMeta .price i{width:10px;height:10px}
+.price{margin-left:8px;font-weight:700;letter-spacing:.04em;color:var(--ink);white-space:nowrap}
+.price i{font-style:normal}
+.price i.off{color:#cfd4da}
+#pMeta .price{margin-left:6px}
 .psrc{margin:10px 0 0;font-size:12px;color:var(--muted)}
 .psrc[hidden]{display:none}
 .empty{padding:12px 0 8px;display:grid;gap:14px;justify-items:start}
@@ -942,7 +941,7 @@ var GUIDE_SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="1" y="1" wid
 var PRICE_WORD=['','Billig','Medium','Dyr'];
 function priceBadge(p){
   if(!p.price)return '';
-  var h='';for(var i=1;i<=3;i++)h+='<i'+(i>p.price?' class="off"':'')+'></i>';
+  var h='';for(var i=1;i<=3;i++)h+='<i'+(i>p.price?' class="off"':'')+'>$</i>';
   var t='Pris: '+PRICE_WORD[p.price].toLowerCase();
   return '<span class="price" role="img" aria-label="'+t+'" title="'+t+'">'+h+'</span>';
 }
