@@ -759,7 +759,15 @@ h2{font:700 21px/1.2 var(--body);overflow-wrap:anywhere}
 .icon{width:40px;height:40px;border-radius:50%;border:0;background:var(--chip);display:grid;place-items:center;color:var(--ink);flex:none}
 .icon.primary{background:var(--ink);color:#fff}
 
-.scroll{flex:1 1 auto;min-height:0;touch-action:pan-y;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 20px calc(28px + env(safe-area-inset-bottom,0px))}
+.scroll{flex:1 1 auto;min-height:0;touch-action:pan-y;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 20px var(--pad-b,calc(28px + env(safe-area-inset-bottom,0px)));scrollbar-width:none}
+.scroll::-webkit-scrollbar{display:none}
+#svhprobe{position:fixed;top:0;left:0;width:1px;height:100svh;visibility:hidden;pointer-events:none}
+.sbar{position:absolute;right:6px;width:4px;border-radius:2px;background:rgba(17,20,24,.07);pointer-events:none;z-index:3}
+.sbar[hidden]{display:none}
+.sbar i{position:absolute;left:0;right:0;top:0;border-radius:2px;background:rgba(17,20,24,.38);transition:background .2s}
+.sbar.active i{background:var(--ink)}
+.sbar span{position:absolute;right:12px;top:0;transform:translateY(-50%);background:var(--ink);color:#fff;font:600 12px/1 var(--body);padding:6px 9px;border-radius:9px;white-space:nowrap;opacity:0;transition:opacity .2s;font-variant-numeric:tabular-nums}
+.sbar.active span{opacity:1}
 .view{display:none}
 .sheet[data-view="list"] .view[data-view="list"],
 .sheet[data-view="place"] .view[data-view="place"],
@@ -848,7 +856,7 @@ ol#list{list-style:none;margin:0;padding:0}
 </style>
 </head>
 <body>
-<div id="probe"></div>
+<div id="probe"></div><div id="svhprobe"></div>
 <div id="map" aria-label="Kort over København"></div>
 
 <div class="chips" id="chips" role="group" aria-label="Filtrer efter pris og madtype" hidden></div>
@@ -924,6 +932,7 @@ ol#list{list-style:none;margin:0;padding:0}
     </section>
 
   </div>
+  <div class="sbar" id="sbar" aria-hidden="true" hidden><i id="sthumb"></i><span id="sbub"></span></div>
 </aside>
 <div id="toast" role="status" aria-live="polite" hidden></div>
 
@@ -1015,10 +1024,19 @@ function insets(){
   var cs=getComputedStyle($('#probe'));
   return {t:parseFloat(cs.paddingTop)||0,b:parseFloat(cs.paddingBottom)||0};
 }
+var standalone=navigator.standalone===true||(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);
+var iosBrowser=/iP(hone|ad|od)/.test(navigator.userAgent||'')&&!standalone;
+/* How much of the bottom of the window is covered by the browser's own bar (Safari's floating toolbar). */
+function coverB(){
+  if(!isMobile())return 0;
+  var sv=$('#svhprobe').offsetHeight||window.innerHeight;
+  var gap=Math.max(0,window.innerHeight-sv);
+  return Math.round(iosBrowser?Math.max(gap,64):gap);
+}
 function fullH(){return Math.round(window.innerHeight-insets().t-52)}
 function snapPx(name){
   var H=window.innerHeight,top=sheetTop.offsetHeight,ib=insets().b;
-  if(name==='peek')return Math.round(top+ib+6);
+  if(name==='peek')return Math.round(top+ib+coverB()+6);
   if(name==='mid')return Math.min(fullH(),Math.round(H*0.52));
   if(name==='fit'){
     var sec=scroller.querySelector('.view[data-view="'+view+'"]');
@@ -1034,7 +1052,7 @@ function snapsFor(v){
 }
 function applySheet(px,animate){
   if(!isMobile()){
-    sheet.style.transform='';sheet.style.height='';scroller.style.height='';
+    sheet.style.transform='';sheet.style.height='';scroller.style.height='';scroller.style.removeProperty('--pad-b');updateBar();
     document.documentElement.style.setProperty('--inset-b','0px');
     fabs.classList.remove('hide');return;
   }
@@ -1045,9 +1063,43 @@ function applySheet(px,animate){
   sheet.style.height=full+'px';
   sheet.style.transform='translateY('+(full-px)+'px)';
   scroller.style.height=Math.max(0,px-sheetTop.offsetHeight)+'px';
+  scroller.style.setProperty('--pad-b',(28+insets().b+coverB())+'px');
   document.documentElement.style.setProperty('--inset-b',Math.round(px)+'px');
   fabs.classList.toggle('hide',px>window.innerHeight*0.62);
+  updateBar();
 }
+/* scroll indicator: thin track by the list, with the distance of the top visible place while scrolling */
+var sbar=$('#sbar'),sthumb=$('#sthumb'),sbub=$('#sbub'),sbarT=null,sbarRaf=0;
+function updateBar(){
+  if(!sbar)return;
+  var hideB=isMobile()?(insets().b+coverB()):0;
+  var viewH=scroller.clientHeight-hideB,sH=scroller.scrollHeight-hideB;
+  if(view!=='list'||viewH<80||sH<=viewH+4){sbar.hidden=true;return}
+  sbar.hidden=false;
+  var top=scroller.offsetTop+8,trackH=viewH-16;
+  sbar.style.top=top+'px';sbar.style.height=trackH+'px';
+  var thumbH=Math.max(28,Math.round(trackH*viewH/sH));
+  var max=Math.max(1,scroller.scrollHeight-scroller.clientHeight);
+  var y=Math.round((trackH-thumbH)*Math.min(1,Math.max(0,scroller.scrollTop/max)));
+  sthumb.style.height=thumbH+'px';sthumb.style.transform='translateY('+y+'px)';
+  var st=scroller.getBoundingClientRect().top,label='';
+  var items=document.querySelectorAll('#list .item');
+  for(var i=0;i<items.length;i++){
+    if(items[i].getBoundingClientRect().bottom>st+8){
+      var d=items[i].querySelector('.idist');label=d?d.textContent:'';
+      label=(label||'')+' · '+(i+1)+' af '+items.length;
+      break;
+    }
+  }
+  sbub.textContent=label;sbub.style.top=(y+thumbH/2)+'px';
+}
+scroller.addEventListener('scroll',function(){
+  if(sbarRaf)return;
+  sbarRaf=requestAnimationFrame(function(){sbarRaf=0;updateBar()});
+  if(view!=='list')return;
+  sbar.classList.add('active');
+  clearTimeout(sbarT);sbarT=setTimeout(function(){sbar.classList.remove('active')},900);
+},{passive:true});
 function snap(name,animate){
   snapName=name;
   applySheet(snapPx(name),animate!==false);
@@ -1099,8 +1151,9 @@ function setView(v,snapTo){
   if(view==='list')listScroll=scroller.scrollTop;
   view=v;sheet.dataset.view=v;confirmDel=false;
   $('#chips').hidden=!chipsVisible();
-  if(v==='list')requestAnimationFrame(function(){scroller.scrollTop=listScroll});
+  if(v==='list')requestAnimationFrame(function(){scroller.scrollTop=listScroll;updateBar()});
   else scroller.scrollTop=0;
+  updateBar();
   if(isMobile())requestAnimationFrame(function(){snap(snapTo||(snapsFor(v).indexOf(snapName)>-1&&v==='list'?snapName:snapsFor(v)[snapsFor(v).length-1]))});
 }
 sheet.addEventListener('click',function(e){
@@ -1262,6 +1315,7 @@ function refresh(){
   current=computeList();
   renderChips();renderHeader();renderList();renderMap();
   if(view==='place')renderPlace();
+  updateBar();
 }
 
 /* ---------- list & place ---------- */
