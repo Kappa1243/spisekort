@@ -777,6 +777,13 @@ ol#list{list-style:none;margin:0;padding:0}
 #pName .mich{margin-left:8px;vertical-align:1px}
 #pName .mich svg{width:17px;height:17px}
 .idist{font-size:14px;font-weight:600;color:var(--muted);white-space:nowrap}
+.price{display:inline-flex;align-items:center;gap:2px;margin-left:8px;vertical-align:-1px}
+.price i{display:block;width:9px;height:9px;border-radius:50%;background:var(--ink)}
+.price i.off{background:#d6dadf}
+#pMeta .price{margin-left:6px;vertical-align:0}
+#pMeta .price i{width:10px;height:10px}
+.psrc{margin:10px 0 0;font-size:12px;color:var(--muted)}
+.psrc[hidden]{display:none}
 .empty{padding:12px 0 8px;display:grid;gap:14px;justify-items:start}
 .empty p{margin:0;color:var(--muted)}
 
@@ -888,6 +895,7 @@ ol#list{list-style:none;margin:0;padding:0}
         <button type="button" class="btn" id="pCopy">Kopiér adresse</button>
       </div>
       <p class="pnote" id="pNote" hidden></p>
+      <p class="psrc" id="pPriceSrc" hidden></p>
       <p class="pmeta" id="pApprox" hidden>Positionen på kortet er omtrentlig, indtil siden har slået adressen op.</p>
     </section>
 
@@ -931,6 +939,13 @@ var $=function(s){return document.querySelector(s)};
 var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
 var STAR_SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.2l2.9 6.3 6.9.7-5.2 4.6 1.5 6.8L12 17.1l-6.1 3.5 1.5-6.8-5.2-4.6 6.9-.7z"/></svg>';
 var GUIDE_SVG='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="1" y="1" width="22" height="22" rx="6"/><path d="M12 7.6C10.4 6.5 8.2 6 5.5 6v11c2.7 0 4.9.5 6.5 1.6 1.6-1.1 3.8-1.6 6.5-1.6V6c-2.7 0-4.9.5-6.5 1.6zM12 7.6v11" fill="none" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"/></svg>';
+var PRICE_WORD=['','Billig','Medium','Dyr'];
+function priceBadge(p){
+  if(!p.price)return '';
+  var h='';for(var i=1;i<=3;i++)h+='<i'+(i>p.price?' class="off"':'')+'></i>';
+  var t='Pris: '+PRICE_WORD[p.price].toLowerCase();
+  return '<span class="price" role="img" aria-label="'+t+'" title="'+t+'">'+h+'</span>';
+}
 function michBadge(p){
   if(p.michelin==null)return '';
   if(p.michelin>0){var t=p.michelin+(p.michelin===1?' Michelin-stjerne':' Michelin-stjerner'),h='';for(var i=0;i<p.michelin;i++)h+=STAR_SVG;return '<span class="mich" role="img" aria-label="'+t+'" title="'+t+'">'+h+'</span>'}
@@ -1199,7 +1214,7 @@ function renderList(){
   current.forEach(function(p){
     h+='<li><button type="button" class="item" data-id="'+esc(p.id)+'">'
       +'<span class="dot'+(p.dist==null?' none':'')+'" aria-hidden="true"></span>'
-      +'<span><span class="iname">'+esc(p.name)+michBadge(p)+'</span><span class="itype">'+esc(p.type||'')+'</span></span>'
+      +'<span><span class="iname">'+esc(p.name)+michBadge(p)+'</span><span class="itype">'+esc(p.type||'')+priceBadge(p)+'</span></span>'
       +'<span class="idist">'+fmtDist(p.dist)+'</span></button></li>';
   });
   ol.innerHTML=h;
@@ -1208,7 +1223,12 @@ function renderPlace(){
   var p=byId(selected);if(!p)return;
   var d=distOf(p);
   $('#pName').innerHTML=esc(p.name)+michBadge(p);
-  $('#pMeta').textContent=[p.type,d==null?'':fmtDist(d)+' væk'].filter(Boolean).join(' · ');
+  $('#pMeta').innerHTML=[esc(p.type),p.price?PRICE_WORD[p.price]+priceBadge(p):'',d==null?'':fmtDist(d)+' væk'].filter(Boolean).join(' · ');
+  var ps=$('#pPriceSrc');
+  if(ps){
+    var src=p.priceSrc==='michelin'?'Michelin Guiden'+(p.priceRaw?' ('+p.priceRaw+')':''):p.priceSrc==='google'?'Google':'';
+    ps.hidden=!(p.price&&src);ps.textContent=p.price&&src?'Prisniveau ifølge '+src+'.':'';
+  }
   $('#pAddr').textContent=p.address||'';
   $('#pRoute').href='https://maps.apple.com/?daddr='+encodeURIComponent(p.address||p.name);
   $('#pCopy').textContent='Kopiér adresse';
@@ -1387,7 +1407,7 @@ function clean(list){
   (list||[]).forEach(function(s){
     if(!s||!s.id||!s.name||s.removed||seen[s.id])return;seen[s.id]=1;
     var lat=typeof s.lat==='number'&&isFinite(s.lat)?s.lat:null,lon=typeof s.lon==='number'&&isFinite(s.lon)?s.lon:null;
-    var p={id:String(s.id),name:String(s.name),type:cap(String(s.type||'')),address:String(s.address||''),note:String(s.note||''),lat:lat,lon:lon,approx:s.approx!==false||lat==null,michelin:typeof s.michelin==='number'&&s.michelin>=0?Math.min(3,Math.floor(s.michelin)):null};
+    var p={id:String(s.id),name:String(s.name),type:cap(String(s.type||'')),address:String(s.address||''),note:String(s.note||''),lat:lat,lon:lon,approx:s.approx!==false||lat==null,michelin:typeof s.michelin==='number'&&s.michelin>=0?Math.min(3,Math.floor(s.michelin)):null,price:(s.price===1||s.price===2||s.price===3)?s.price:null,priceSrc:String(s.priceSrc||''),priceRaw:String(s.priceRaw||'')};
     var g=geoCache[geoKey(p)];
     if(g&&p.approx){p.lat=g.lat;p.lon=g.lon;p.approx=false}
     out.push(p);

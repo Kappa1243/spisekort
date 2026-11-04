@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-01",
+  "updated": "2026-11-04",
   "places": [
     {
       "id": "bar-solis",
@@ -9,7 +9,9 @@
       "note": "Køkkenet har åbent tirsdag-lørdag kl. 17-21.",
       "lat": 55.6682,
       "lon": 12.5452,
-      "approx": true
+      "approx": true,
+      "price": 2,
+      "priceSrc": "google"
     },
     {
       "id": "mudan",
@@ -19,7 +21,9 @@
       "note": "Nord- og nordøstkinesisk køkken.",
       "lat": 55.6868,
       "lon": 12.5005,
-      "approx": true
+      "approx": true,
+      "price": 2,
+      "priceSrc": "google"
     },
     {
       "id": "restaurant-alf",
@@ -29,7 +33,9 @@
       "note": "Nynordisk med fransk præg, tæt på Frederiksberg Have.",
       "lat": 55.6776,
       "lon": 12.5428,
-      "approx": true
+      "approx": true,
+      "price": 2,
+      "priceSrc": "google"
     },
     {
       "id": "saji",
@@ -39,7 +45,9 @@
       "note": "",
       "lat": 55.6779,
       "lon": 12.5693,
-      "approx": true
+      "approx": true,
+      "price": 2,
+      "priceSrc": "google"
     },
     {
       "id": "bar-moro",
@@ -49,7 +57,9 @@
       "note": "Middelhavskøkken med dansk præg.",
       "lat": 55.6931,
       "lon": 12.5672,
-      "approx": true
+      "approx": true,
+      "price": 3,
+      "priceSrc": "google"
     },
     {
       "id": "masseria",
@@ -59,7 +69,9 @@
       "note": "Syditaliensk pastatrattoria i Kødbyen.",
       "lat": 55.669,
       "lon": 12.5592,
-      "approx": true
+      "approx": true,
+      "price": 2,
+      "priceSrc": "google"
     },
     {
       "id": "safari",
@@ -69,7 +81,9 @@
       "note": "Mest grønne retter med inspiration fra Central- og Sydeuropa. Er også bar.",
       "lat": 55.6893,
       "lon": 12.5602,
-      "approx": true
+      "approx": true,
+      "price": 2,
+      "priceSrc": "google"
     },
     {
       "id": "locale-21",
@@ -79,7 +93,9 @@
       "note": "Pastabistro.",
       "lat": 55.6813,
       "lon": 12.5846,
-      "approx": true
+      "approx": true,
+      "price": 2,
+      "priceSrc": "google"
     },
     {
       "id": "donda-khana",
@@ -89,7 +105,9 @@
       "note": "Moderne sydasiatisk med fokus på fisk og skaldyr.",
       "lat": 55.6746,
       "lon": 12.5918,
-      "approx": true
+      "approx": true,
+      "price": 2,
+      "priceSrc": "google"
     },
     {
       "id": "pastis",
@@ -99,7 +117,9 @@
       "note": "Klassisk fransk bistro med moules frites, escargots og skiftende dagens ret.",
       "lat": 55.6823438,
       "lon": 12.582034,
-      "approx": false
+      "approx": false,
+      "price": 2,
+      "priceSrc": "google"
     },
     {
       "id": "restaurant-palaegade",
@@ -110,7 +130,10 @@
       "lat": 55.6823359,
       "lon": 12.5863548,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "schoennemann",
@@ -120,7 +143,9 @@
       "note": "Klassisk smørrebrødsfrokost i kælderrestaurant fra 1877.",
       "lat": 55.6825,
       "lon": 12.573,
-      "approx": true
+      "approx": true,
+      "price": 2,
+      "priceSrc": "google"
     },
     {
       "id": "lumskebugten",
@@ -140,7 +165,9 @@
       "note": "Texas-barbecue og eget bryggeri i Kødbyen.",
       "lat": 55.6687,
       "lon": 12.5605,
-      "approx": true
+      "approx": true,
+      "price": 2,
+      "priceSrc": "google"
     },
     {
       "id": "bistro-royal",
@@ -150,7 +177,9 @@
       "note": "Fransk-dansk bistro ved Kongens Nytorv.",
       "lat": 55.6797,
       "lon": 12.5858,
-      "approx": true
+      "approx": true,
+      "price": 2,
+      "priceSrc": "google"
     },
     {
       "id": "silberbauers-bistro",
@@ -161,7 +190,10 @@
       "lat": 55.6932452,
       "lon": 12.5433824,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "fabro",
@@ -171,7 +203,9 @@
       "note": "Uformel pastabar.",
       "lat": 55.6878,
       "lon": 12.5905,
-      "approx": true
+      "approx": true,
+      "price": 2,
+      "priceSrc": "google"
     },
     {
       "id": "mangia",
@@ -181,7 +215,9 @@
       "note": "Traditionelt italiensk med hjemmelavet pasta.",
       "lat": 55.6716,
       "lon": 12.552,
-      "approx": true
+      "approx": true,
+      "price": 2,
+      "priceSrc": "google"
     },
     {
       "id": "osteria-16-pesce",
@@ -191,7 +227,9 @@
       "note": "Italiensk fiske-søsterrestaurant til Osteria 16.",
       "lat": 55.666,
       "lon": 12.552,
-      "approx": true
+      "approx": true,
+      "price": 2,
+      "priceSrc": "google"
     },
     {
       "id": "ripotot",
@@ -201,7 +239,9 @@
       "note": "Fransk-inspireret sæsonmenu, der skifter dagligt.",
       "lat": 55.6843,
       "lon": 12.588,
-      "approx": true
+      "approx": true,
+      "price": 3,
+      "priceSrc": "google"
     },
     {
       "id": "resto-bar",
@@ -211,7 +251,9 @@
       "note": "Italiensk comfort food på Vesterbro Torv.",
       "lat": 55.6728,
       "lon": 12.5545,
-      "approx": true
+      "approx": true,
+      "price": 2,
+      "priceSrc": "google"
     },
     {
       "id": "baka-d-busk",
@@ -221,7 +263,9 @@
       "note": "Vegetarisk plantebistro med delretter.",
       "lat": 55.688,
       "lon": 12.545,
-      "approx": true
+      "approx": true,
+      "price": 2,
+      "priceSrc": "google"
     },
     {
       "id": "esmee",
@@ -231,7 +275,9 @@
       "note": "Fransk brasserie ved Kongens Nytorv.",
       "lat": 55.6807,
       "lon": 12.5845,
-      "approx": true
+      "approx": true,
+      "price": 3,
+      "priceSrc": "google"
     },
     {
       "id": "maison",
@@ -241,7 +287,9 @@
       "note": "",
       "lat": 55.6838,
       "lon": 12.5888,
-      "approx": true
+      "approx": true,
+      "price": 3,
+      "priceSrc": "google"
     },
     {
       "id": "jatak",
@@ -252,7 +300,10 @@
       "lat": 55.6870523,
       "lon": 12.547932,
       "approx": false,
-      "michelin": 1
+      "michelin": 1,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€"
     },
     {
       "id": "sushi-anaba",
@@ -263,7 +314,10 @@
       "lat": 55.7064709,
       "lon": 12.6022873,
       "approx": false,
-      "michelin": 1
+      "michelin": 1,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€€"
     },
     {
       "id": "nr-30",
@@ -273,7 +327,9 @@
       "note": "Spisested og vinbar med skiftende sæsonmenu.",
       "lat": 55.6835,
       "lon": 12.5655,
-      "approx": true
+      "approx": true,
+      "price": 2,
+      "priceSrc": "google"
     },
     {
       "id": "moentergade",
@@ -284,7 +340,10 @@
       "lat": 55.6820829,
       "lon": 12.5797229,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 2,
+      "priceSrc": "michelin",
+      "priceRaw": "€€"
     },
     {
       "id": "restaurant-glassalen",
@@ -295,7 +354,10 @@
       "lat": 55.6739602,
       "lon": 12.5683103,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "gabrielle",
@@ -306,7 +368,10 @@
       "lat": 55.6779957,
       "lon": 12.5712,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "uformel",
@@ -317,7 +382,10 @@
       "lat": 55.6766382,
       "lon": 12.5644935,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 2,
+      "priceSrc": "michelin",
+      "priceRaw": "€€"
     },
     {
       "id": "mark",
@@ -339,7 +407,10 @@
       "lat": 55.6787699,
       "lon": 12.5670836,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "udtryk",
@@ -350,7 +421,10 @@
       "lat": 55.6795688,
       "lon": 12.5685085,
       "approx": false,
-      "michelin": 1
+      "michelin": 1,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€€"
     },
     {
       "id": "norrlyst",
@@ -361,7 +435,10 @@
       "lat": 55.67758,
       "lon": 12.5762729,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "theo",
@@ -372,7 +449,10 @@
       "lat": 55.67934,
       "lon": 12.57437,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "marv-ben",
@@ -383,7 +463,10 @@
       "lat": 55.6772861,
       "lon": 12.5770331,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "krogs-fiskerestaurant",
@@ -394,7 +477,10 @@
       "lat": 55.6776339,
       "lon": 12.5782634,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€"
     },
     {
       "id": "bobe",
@@ -405,7 +491,10 @@
       "lat": 55.67967,
       "lon": 12.57605,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "admiralgade-26",
@@ -416,7 +505,10 @@
       "lat": 55.677584,
       "lon": 12.5821663,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 2,
+      "priceSrc": "michelin",
+      "priceRaw": "€€"
     },
     {
       "id": "hoest",
@@ -427,7 +519,10 @@
       "lat": 55.6832973,
       "lon": 12.565939,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "kong-hans-kaelder",
@@ -438,7 +533,10 @@
       "lat": 55.6787423,
       "lon": 12.5839958,
       "approx": false,
-      "michelin": 2
+      "michelin": 2,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€€"
     },
     {
       "id": "anarki",
@@ -449,7 +547,10 @@
       "lat": 55.6794393,
       "lon": 12.5546438,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "selma",
@@ -460,7 +561,10 @@
       "lat": 55.6847664,
       "lon": 12.5699566,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "no-2",
@@ -471,7 +575,10 @@
       "lat": 55.6724925,
       "lon": 12.5842623,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "ark",
@@ -482,7 +589,10 @@
       "lat": 55.6851727,
       "lon": 12.5681998,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€"
     },
     {
       "id": "koedbyens-fiskebar",
@@ -493,7 +603,10 @@
       "lat": 55.6679589,
       "lon": 12.5594649,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "levi",
@@ -504,7 +617,10 @@
       "lat": 55.6817794,
       "lon": 12.5822821,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 2,
+      "priceSrc": "michelin",
+      "priceRaw": "€€"
     },
     {
       "id": "restaurant-frank",
@@ -515,7 +631,10 @@
       "lat": 55.681474,
       "lon": 12.583174,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "sanchez",
@@ -526,7 +645,10 @@
       "lat": 55.6698014,
       "lon": 12.5550923,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "alouette",
@@ -537,7 +659,10 @@
       "lat": 55.6829942,
       "lon": 12.5811647,
       "approx": false,
-      "michelin": 1
+      "michelin": 1,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€€"
     },
     {
       "id": "magny",
@@ -548,7 +673,10 @@
       "lat": 55.68112,
       "lon": 12.58409,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€"
     },
     {
       "id": "marchal",
@@ -559,7 +687,10 @@
       "lat": 55.6806399,
       "lon": 12.584676,
       "approx": false,
-      "michelin": 1
+      "michelin": 1,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€"
     },
     {
       "id": "radio",
@@ -570,7 +701,10 @@
       "lat": 55.6820619,
       "lon": 12.5543448,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "koefoed",
@@ -581,7 +715,10 @@
       "lat": 55.6830114,
       "lon": 12.5851704,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "kadeau-copenhagen",
@@ -592,7 +729,10 @@
       "lat": 55.6722948,
       "lon": 12.5888136,
       "approx": false,
-      "michelin": 3
+      "michelin": 3,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€€"
     },
     {
       "id": "restaurant-anton",
@@ -603,7 +743,10 @@
       "lat": 55.6809747,
       "lon": 12.587899,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 2,
+      "priceSrc": "michelin",
+      "priceRaw": "€€"
     },
     {
       "id": "pluto",
@@ -614,7 +757,10 @@
       "lat": 55.6834672,
       "lon": 12.5851631,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "petra-bar-restaurant",
@@ -625,7 +771,10 @@
       "lat": 55.684549,
       "lon": 12.583379,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "rebel",
@@ -636,7 +785,10 @@
       "lat": 55.6834366,
       "lon": 12.5871529,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "a-o-c",
@@ -647,7 +799,10 @@
       "lat": 55.6831927,
       "lon": 12.5889875,
       "approx": false,
-      "michelin": 2
+      "michelin": 2,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€€"
     },
     {
       "id": "sankt-annae",
@@ -658,7 +813,10 @@
       "lat": 55.6814191,
       "lon": 12.5912007,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "restaurant-kanalen",
@@ -669,7 +827,10 @@
       "lat": 55.6751172,
       "lon": 12.5937188,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 2,
+      "priceSrc": "michelin",
+      "priceRaw": "€€"
     },
     {
       "id": "texture",
@@ -680,7 +841,10 @@
       "lat": 55.6897064,
       "lon": 12.5739829,
       "approx": false,
-      "michelin": 1
+      "michelin": 1,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€€"
     },
     {
       "id": "amalie",
@@ -691,7 +855,10 @@
       "lat": 55.6825108,
       "lon": 12.5917866,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "melée",
@@ -702,7 +869,10 @@
       "lat": 55.6759079,
       "lon": 12.5426814,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "barr",
@@ -713,7 +883,10 @@
       "lat": 55.6778861,
       "lon": 12.5962639,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 2,
+      "priceSrc": "michelin",
+      "priceRaw": "€€"
     },
     {
       "id": "lille-moelle",
@@ -724,7 +897,10 @@
       "lat": 55.6713866,
       "lon": 12.5961116,
       "approx": false,
-      "michelin": 1
+      "michelin": 1,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€€"
     },
     {
       "id": "botschaft",
@@ -735,7 +911,10 @@
       "lat": 55.6920182,
       "lon": 12.5667091,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "graziano",
@@ -746,7 +925,10 @@
       "lat": 55.6911353,
       "lon": 12.5562753,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "kiin-kiin",
@@ -757,7 +939,10 @@
       "lat": 55.6918598,
       "lon": 12.557336,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€"
     },
     {
       "id": "formel-b",
@@ -768,7 +953,10 @@
       "lat": 55.6706659,
       "lon": 12.5355314,
       "approx": false,
-      "michelin": 1
+      "michelin": 1,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€"
     },
     {
       "id": "aotori",
@@ -779,7 +967,10 @@
       "lat": 55.6953732,
       "lon": 12.5794116,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 2,
+      "priceSrc": "michelin",
+      "priceRaw": "€€"
     },
     {
       "id": "enomania",
@@ -790,7 +981,10 @@
       "lat": 55.6706713,
       "lon": 12.5321802,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "mielcke-hurtigkarl",
@@ -801,7 +995,10 @@
       "lat": 55.6746715,
       "lon": 12.5308565,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€"
     },
     {
       "id": "calma",
@@ -812,7 +1009,10 @@
       "lat": 55.6930447,
       "lon": 12.543568,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 2,
+      "priceSrc": "michelin",
+      "priceRaw": "€€"
     },
     {
       "id": "paesano",
@@ -823,7 +1023,10 @@
       "lat": 55.6930508,
       "lon": 12.5433079,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "aure",
@@ -834,7 +1037,10 @@
       "lat": 55.6841662,
       "lon": 12.6103972,
       "approx": false,
-      "michelin": 1
+      "michelin": 1,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€€"
     },
     {
       "id": "kiin-kiin-veve",
@@ -845,7 +1051,10 @@
       "lat": 55.6971518,
       "lon": 12.5942296,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 2,
+      "priceSrc": "michelin",
+      "priceRaw": "€€"
     },
     {
       "id": "koan",
@@ -856,7 +1065,10 @@
       "lat": 55.6954973,
       "lon": 12.6001611,
       "approx": false,
-      "michelin": 2
+      "michelin": 2,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€€"
     },
     {
       "id": "fasangaarden",
@@ -867,7 +1079,10 @@
       "lat": 55.6749944,
       "lon": 12.5212019,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 2,
+      "priceSrc": "michelin",
+      "priceRaw": "€€"
     },
     {
       "id": "geranium",
@@ -878,7 +1093,10 @@
       "lat": 55.703472,
       "lon": 12.5720951,
       "approx": false,
-      "michelin": 3
+      "michelin": 3,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€€"
     },
     {
       "id": "bistro-lupa",
@@ -889,7 +1107,10 @@
       "lat": 55.7035355,
       "lon": 12.5851885,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "alchemist",
@@ -900,7 +1121,10 @@
       "lat": 55.6943425,
       "lon": 12.6140984,
       "approx": false,
-      "michelin": 2
+      "michelin": 2,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€€"
     },
     {
       "id": "esse",
@@ -911,7 +1135,10 @@
       "lat": 55.7068461,
       "lon": 12.5937114,
       "approx": false,
-      "michelin": 1
+      "michelin": 1,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€"
     },
     {
       "id": "restaurant-vie",
@@ -922,7 +1149,10 @@
       "lat": 55.7072369,
       "lon": 12.5922097,
       "approx": false,
-      "michelin": 0
+      "michelin": 0,
+      "price": 1,
+      "priceSrc": "michelin",
+      "priceRaw": "€"
     },
     {
       "id": "akme",
@@ -933,7 +1163,10 @@
       "lat": 55.7068067,
       "lon": 12.5985873,
       "approx": false,
-      "michelin": 1
+      "michelin": 1,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€"
     },
     {
       "id": "the-samuel",
@@ -944,7 +1177,10 @@
       "lat": 55.7324017,
       "lon": 12.5684288,
       "approx": false,
-      "michelin": 1
+      "michelin": 1,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€€"
     },
     {
       "id": "parsley-salon",
@@ -955,7 +1191,10 @@
       "lat": 55.7375427,
       "lon": 12.5752339,
       "approx": false,
-      "michelin": 1
+      "michelin": 1,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€€"
     },
     {
       "id": "jordnaer",
@@ -966,7 +1205,10 @@
       "lat": 55.7481416,
       "lon": 12.5412347,
       "approx": false,
-      "michelin": 3
+      "michelin": 3,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€€"
     },
     {
       "id": "soelleroed-kro",
@@ -977,7 +1219,10 @@
       "lat": 55.8155,
       "lon": 12.4985,
       "approx": true,
-      "michelin": 1
+      "michelin": 1,
+      "price": 3,
+      "priceSrc": "michelin",
+      "priceRaw": "€€€€"
     }
   ]
 }
