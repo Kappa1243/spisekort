@@ -1483,7 +1483,7 @@ $('#chips').addEventListener('click',function(e){
   if(pb){var n=+pb.getAttribute('data-price');priceFilter=priceFilter===n?0:n}
   else{var t=b.getAttribute('data-type');filter=(t===filter&&t!=='Alle')?'Alle':t}
   if(selected&&!computeList().some(function(p){return p.id===selected})){selected=null;if(view==='place')setView('list','mid')}
-  refresh();fitView();
+  refresh();
 });
 $('#fitBtn').addEventListener('click',function(){fitView()});
 /* open now */
