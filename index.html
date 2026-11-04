@@ -1490,7 +1490,7 @@ $('#fitBtn').addEventListener('click',function(){fitView()});
 $('#openBtn').addEventListener('click',function(){
   openFilter=!openFilter;
   if(selected&&!computeList().some(function(p){return p.id===selected})){selected=null;if(view==='place')setView('list','mid')}
-  refresh();fitView();
+  refresh();
 });
 setInterval(function(){if(document.visibilityState==='visible')refresh()},60000);
 /* search */
