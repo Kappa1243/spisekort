@@ -759,7 +759,7 @@ h2{font:700 21px/1.2 var(--body);overflow-wrap:anywhere}
 .icon{width:40px;height:40px;border-radius:50%;border:0;background:var(--chip);display:grid;place-items:center;color:var(--ink);flex:none}
 .icon.primary{background:var(--ink);color:#fff}
 
-.scroll{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 20px calc(28px + env(safe-area-inset-bottom,0px))}
+.scroll{flex:1 1 auto;min-height:0;touch-action:pan-y;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 20px calc(28px + env(safe-area-inset-bottom,0px))}
 .view{display:none}
 .sheet[data-view="list"] .view[data-view="list"],
 .sheet[data-view="place"] .view[data-view="place"],
@@ -834,6 +834,7 @@ ol#list{list-style:none;margin:0;padding:0}
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--inset-b) + 16px);max-width:min(92vw,480px);background:var(--ink);color:#fff;padding:11px 16px;border-radius:14px;font-size:14px;font-weight:600;z-index:3000;box-shadow:var(--shadow);text-align:center}
 #toast[hidden]{display:none}
 
+@media (max-width:759px){.sheet .scroll{flex:0 0 auto}}
 @media (min-width:760px){
   .sheet{left:calc(16px + env(safe-area-inset-left,0px));top:16px;bottom:16px;right:auto;width:384px;border-radius:20px;transform:none!important;box-shadow:var(--shadow)}
   .handle{display:none}
@@ -872,7 +873,6 @@ ol#list{list-style:none;margin:0;padding:0}
         <h1>Spisekort</h1>
         <button type="button" class="from" id="fromBtn"><span id="fromText">Afstand fra <strong>Rådhuspladsen</strong></span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
-      </div>
       </div>
     </div>
 
@@ -1019,19 +1019,18 @@ function fullH(){return Math.round(window.innerHeight-insets().t-52)}
 function snapPx(name){
   var H=window.innerHeight,top=sheetTop.offsetHeight,ib=insets().b;
   if(name==='peek')return Math.round(top+ib+6);
-  if(name==='mid')return Math.min(fullH(),Math.round(H*0.46));
+  if(name==='mid')return Math.min(fullH(),Math.round(H*0.52));
   if(name==='fit'){
     var sec=scroller.querySelector('.view[data-view="'+view+'"]');
     var pb=parseFloat(getComputedStyle(scroller).paddingBottom)||0;
     var content=top+(sec?sec.offsetHeight:0)+pb+4;
-    return Math.max(snapPx('peek'),Math.min(fullH(),Math.round(content)));
+    return Math.max(snapPx('peek'),Math.min(snapPx('mid'),Math.round(content)));
   }
-  return fullH();
+  return snapPx('mid');
 }
 function snapsFor(v){
-  if(v==='list')return ['peek','mid','full'];
-  if(v==='place'||v==='start')return ['peek','fit'];
-  return ['peek','full'];
+  if(v==='list')return ['peek','mid'];
+  return ['peek','fit'];
 }
 function applySheet(px,animate){
   if(!isMobile()){
@@ -1040,7 +1039,7 @@ function applySheet(px,animate){
     fabs.classList.remove('hide');return;
   }
   var full=fullH();
-  px=Math.max(snapPx('peek')-40,Math.min(full,px));
+  px=Math.max(snapPx('peek')-40,Math.min(snapPx('mid')+16,full,px));
   vis=px;
   sheet.classList.toggle('anim',!!animate&&!reduceMotion);
   sheet.style.height=full+'px';
@@ -1054,6 +1053,7 @@ function snap(name,animate){
   applySheet(snapPx(name),animate!==false);
 }
 window.addEventListener('resize',function(){applySheet(isMobile()?snapPx(snapName):0,false)});
+if(window.ResizeObserver)new ResizeObserver(function(){if(isMobile()&&!drag)applySheet(snapPx(snapName),false)}).observe(sheetTop);
 mobileMQ.addEventListener&&mobileMQ.addEventListener('change',function(){placeChips();applySheet(isMobile()?snapPx(snapName):0,false)});
 
 /* drag the sheet by its top area; a short tap on the handle area toggles */
