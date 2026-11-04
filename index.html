@@ -721,6 +721,10 @@ body.picking #map{cursor:crosshair}
 .sheet .chips{position:static;padding:0 20px 14px;pointer-events:auto;touch-action:pan-x;gap:6px}
 .sheet .chip{background:var(--chip);box-shadow:none;height:34px;padding:0 14px}
 .sheet .chip[aria-pressed="true"]{background:var(--ink);color:#fff}
+.chip.pchip{min-width:44px;padding:0 12px;letter-spacing:.04em;font-weight:700}
+.pgroup{display:flex;gap:inherit;flex:0 0 auto;align-items:center}
+.sheet .pgroup{position:sticky;left:-20px;z-index:1;margin-left:-20px;padding-left:20px;background:var(--solid);box-shadow:8px 0 8px -6px rgba(17,20,24,.08)}
+.chipsep{flex:0 0 1px;align-self:center;height:20px;background:#cfd4da;margin:0 2px 0 4px;pointer-events:none}
 
 /* floating map buttons */
 .fabs{position:fixed;z-index:950;right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(var(--inset-b) + 12px);display:grid;gap:10px;transition:opacity .2s}
@@ -846,7 +850,7 @@ ol#list{list-style:none;margin:0;padding:0}
 <div id="probe"></div>
 <div id="map" aria-label="Kort over København"></div>
 
-<div class="chips" id="chips" role="group" aria-label="Filtrer efter madtype" hidden></div>
+<div class="chips" id="chips" role="group" aria-label="Filtrer efter pris og madtype" hidden></div>
 
 <div class="fabs" id="fabs">
   <button type="button" class="fab" id="fitBtn" aria-label="Vis alle steder" title="Vis alle steder">
@@ -985,8 +989,9 @@ try{
 function hasPos(p){return typeof p.lat==='number'&&isFinite(p.lat)&&typeof p.lon==='number'&&isFinite(p.lon)}
 function byId(id){return places.filter(function(p){return p.id===id})[0]}
 function distOf(p){return hasPos(p)?hav(pos.lat,pos.lon,p.lat,p.lon):null}
+var priceFilter=0;
 function computeList(){
-  var arr=places.filter(function(p){return filter==='Alle'||p.type===filter}).map(function(p){
+  var arr=places.filter(function(p){return (filter==='Alle'||p.type===filter)&&(!priceFilter||p.price===priceFilter)}).map(function(p){
     var o=Object.assign({},p);o.dist=distOf(p);return o;
   });
   arr.sort(function(a,b){
@@ -1190,9 +1195,27 @@ function placeChips(){
 function renderChips(){
   var tc=typeCounts(),c=$('#chips');
   if(tc.length<2){c.innerHTML='';c.hidden=true;return}
-  var h='<button type="button" class="chip" data-type="Alle" aria-pressed="'+(filter==='Alle')+'">Alle</button>';
+  var h='';
+  if(places.some(function(p){return p.price})){
+    h+='<span class="pgroup">';
+    [1,2,3].forEach(function(n){
+      var lbl=['','Billig','Medium','Dyr'][n];
+      h+='<button type="button" class="chip pchip" data-price="'+n+'" aria-pressed="'+(priceFilter===n)+'" aria-label="'+lbl+'" title="'+lbl+'">'+'$$$'.slice(0,n)+'</button>';
+    });
+    h+='<span class="chipsep" aria-hidden="true"></span></span>';
+  }
+  h+='<button type="button" class="chip" data-type="Alle" aria-pressed="'+(filter==='Alle')+'">Alle</button>';
   tc.forEach(function(t){h+='<button type="button" class="chip" data-type="'+esc(t[0])+'" aria-pressed="'+(filter===t[0])+'">'+esc(t[0])+'</button>'});
+  var keep=c.scrollLeft;
   c.innerHTML=h;c.hidden=!chipsVisible();
+  c.scrollLeft=keep;
+  var sel=filter!=='Alle'&&c.querySelector('.chip[data-type][aria-pressed="true"]');
+  if(sel){
+    var pg=c.querySelector('.pgroup'),lead=(pg&&getComputedStyle(pg).position==='sticky')?pg.offsetWidth-20:0;
+    var l=sel.offsetLeft-c.offsetLeft,r=l+sel.offsetWidth,pad=24;
+    if(l<c.scrollLeft+lead+pad)c.scrollLeft=Math.max(0,l-lead-pad);
+    else if(r>c.scrollLeft+c.clientWidth-pad)c.scrollLeft=r-c.clientWidth+pad;
+  }
 }
 function renderHeader(){
   var name=pos.src==='gps'?'din placering':pos.name;
@@ -1205,7 +1228,7 @@ function renderList(){
   var ol=$('#list');
   if(!current.length){
     ol.innerHTML=places.length
-      ?'<li class="empty"><p>Ingen steder med den madtype.</p></li>'
+      ?'<li class="empty"><p>'+(priceFilter?'Ingen steder til '+'$$$'.slice(0,priceFilter)+(filter==='Alle'?'':' i '+esc(filter))+'.':'Ingen steder med den madtype.')+'</p></li>'
       :'<li class="empty"><p>'+(loaded?'Listen er tom. Skriv til Claude, hvilke restauranter du vil have med.':'Henter din liste …')+'</p></li>';
     return;
   }
@@ -1281,9 +1304,10 @@ function copyText(t){
 
 /* ---------- filters & map buttons ---------- */
 $('#chips').addEventListener('click',function(e){
-  var b=e.target.closest('[data-type]');if(!b)return;
-  var t=b.getAttribute('data-type');
-  filter=(t===filter&&t!=='Alle')?'Alle':t;
+  var pb=e.target.closest('[data-price]'),b=e.target.closest('[data-type]');
+  if(!pb&&!b)return;
+  if(pb){var n=+pb.getAttribute('data-price');priceFilter=priceFilter===n?0:n}
+  else{var t=b.getAttribute('data-type');filter=(t===filter&&t!=='Alle')?'Alle':t}
   if(selected&&!computeList().some(function(p){return p.id===selected})){selected=null;if(view==='place')setView('list','mid')}
   refresh();fitView();
 });
