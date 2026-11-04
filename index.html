@@ -709,7 +709,10 @@ body.picking #map{cursor:crosshair}
 .pinwrap{background:none;border:0}
 .pin{width:16px;height:16px;border-radius:50%;background:var(--ink);border:2.5px solid var(--solid);box-shadow:0 1px 4px rgba(0,0,0,.35);transition:transform .15s}
 .pin.sel{transform:scale(1.55);border-color:var(--ink);box-shadow:0 0 0 2px var(--solid),0 2px 6px rgba(0,0,0,.4)}
-.pin.closed{opacity:.55}
+.pstar{width:30px;height:30px;display:grid;place-items:center;transition:transform .15s}
+.pstar svg{width:27px;height:27px;fill:#d0142c;stroke:#fff;stroke-width:1.8;stroke-linejoin:round;overflow:visible;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
+.pstar.sel{transform:scale(1.45)}
+.pstar.sel svg{stroke:var(--ink)}
 .leaflet-tooltip.plabel{background:var(--solid);color:var(--ink);border:0;border-radius:8px;font:600 12px var(--body);box-shadow:var(--shadow);padding:4px 9px}
 .leaflet-tooltip.plabel::before{display:none}
 
@@ -1296,9 +1299,10 @@ function renderMap(){
   current.forEach(function(p){
     if(!hasPos(p))return;
     var sel=p.id===selected;
-    var oi=openInfo(p),cls='pin'+(sel?' sel':'')+(oi&&!oi.open&&!openFilter?' closed':'');
-    var icon=L.divIcon({className:'pinwrap',html:'<div class="'+cls+'" style="background:'+PCOL[p.price||0]+'"></div>',iconSize:[28,28],iconAnchor:[14,14]});
-    var m=L.marker([p.lat,p.lon],{icon:icon,zIndexOffset:sel?1000:0,keyboard:false,title:p.name,riseOnHover:true});
+    var star=p.michelin>0,icon;
+    if(star)icon=L.divIcon({className:'pinwrap',html:'<div class="pstar'+(sel?' sel':'')+'" title="'+p.michelin+' Michelin-stjerne'+(p.michelin>1?'r':'')+'"><svg viewBox="0 0 24 24"><path d="M12 2.6l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.5l-5.9 3.1 1.2-6.5L2.5 9.5l6.6-.9z"/></svg></div>',iconSize:[30,30],iconAnchor:[15,15]});
+    else icon=L.divIcon({className:'pinwrap',html:'<div class="pin'+(sel?' sel':'')+'"></div>',iconSize:[28,28],iconAnchor:[14,14]});
+    var m=L.marker([p.lat,p.lon],{icon:icon,zIndexOffset:sel?1000:(star?500:0),keyboard:false,title:p.name,riseOnHover:true});
     if(sel||zoomedIn)m.bindTooltip(esc(p.name),{permanent:true,direction:'right',offset:[10,0],className:'plabel'});
     m.on('click',function(ev){L.DomEvent.stopPropagation(ev);if(mode)return;openPlace(p.id)});
     m.addTo(pinLayer);
@@ -1350,7 +1354,7 @@ function renderChips(){
     h+='<span class="pgroup">';
     [1,2,3].forEach(function(n){
       var lbl=['','Billig','Medium','Dyr'][n];
-      h+='<button type="button" class="chip pchip" data-price="'+n+'" aria-pressed="'+(priceFilter===n)+'" aria-label="'+lbl+'" title="'+lbl+'"><span class="pdot" style="background:'+PCOL[n]+'"></span>'+'$$$'.slice(0,n)+'</button>';
+      h+='<button type="button" class="chip pchip" data-price="'+n+'" aria-pressed="'+(priceFilter===n)+'" aria-label="'+lbl+'" title="'+lbl+'">'+'$$$'.slice(0,n)+'</button>';
     });
     h+='<span class="chipsep" aria-hidden="true"></span></span>';
   }
@@ -1387,7 +1391,7 @@ function renderList(){
   var h='';
   current.forEach(function(p){
     h+='<li><button type="button" class="item" data-id="'+esc(p.id)+'">'
-      +'<span class="dot'+(p.dist==null?' none':'')+'" aria-hidden="true"'+(p.dist==null?'':' style="background:'+PCOL[p.price||0]+'"')+'></span>'
+      +'<span class="dot'+(p.dist==null?' none':'')+'" aria-hidden="true"></span>'
       +'<span><span class="iname">'+esc(p.name)+michBadge(p)+'</span><span class="itype">'+esc(p.type||'')+priceBadge(p)+(function(){var o=openInfo(p);return o?'<span class="ost'+(o.open?' open':'')+'">'+(o.open?'Åben':'Lukket')+'</span>':''})()+'</span></span>'
       +'<span class="idist">'+fmtDist(p.dist)+'</span></button></li>';
   });
