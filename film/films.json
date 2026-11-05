@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-02",
+  "updated": "2026-11-05",
   "country": "DK",
   "app": 5,
   "films": [
@@ -143,8 +143,8 @@
         "Dokumentar"
       ],
       "note": "Dokumentar om sherpaerne på Everest i klatresæsonen 2014, hvor en stor lavine ændrede alt.",
-      "poster": "",
-      "wiki": "Sherpa (2015 film)",
+      "poster": "https://images.justwatch.com/poster/173019520/s332/sherpa.jpg",
+      "wiki": "Sherpa (film)",
       "justwatch": "https://www.justwatch.com/dk/movie/sherpa",
       "stream": [
         "SkyShowtime",
