@@ -84,7 +84,7 @@
       ],
       "free": [],
       "stream": [],
-      "checked": "2026-11-01",
+      "checked": "2026-11-09",
       "added": "2026-10-30"
     },
     {
@@ -131,7 +131,7 @@
       ],
       "free": [],
       "rent": [],
-      "checked": "2026-11-01",
+      "checked": "2026-11-09",
       "added": "2026-10-30"
     },
     {
@@ -152,7 +152,7 @@
       ],
       "free": [],
       "rent": [],
-      "checked": "2026-10-30",
+      "checked": "2026-11-09",
       "added": "2026-10-30"
     },
     {
@@ -210,7 +210,7 @@
         }
       ],
       "stream": [],
-      "checked": "2026-11-01",
+      "checked": "2026-11-09",
       "added": "2026-10-30"
     },
     {
@@ -232,7 +232,7 @@
       ],
       "free": [],
       "rent": [],
-      "checked": "2026-10-30",
+      "checked": "2026-11-09",
       "added": "2026-10-30"
     },
     {
@@ -291,7 +291,7 @@
           "price": 49
         }
       ],
-      "checked": "2026-11-01",
+      "checked": "2026-11-09",
       "free": []
     },
     {
@@ -334,10 +334,12 @@
     {
       "danishTitle": "",
       "originalTitle": "",
-      "stream": [],
+      "stream": [
+        "Prime Video"
+      ],
       "free": [],
       "rent": [],
-      "checked": "2026-11-02",
+      "checked": "2026-11-09",
       "added": "2026-11-02",
       "id": "casino-royale",
       "title": "Casino Royale",
@@ -356,10 +358,12 @@
     {
       "danishTitle": "",
       "originalTitle": "",
-      "stream": [],
+      "stream": [
+        "Prime Video"
+      ],
       "free": [],
       "rent": [],
-      "checked": "2026-11-02",
+      "checked": "2026-11-09",
       "added": "2026-11-02",
       "id": "marty-supreme",
       "title": "Marty Supreme",
