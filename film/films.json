@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-05",
+  "updated": "2026-11-09",
   "country": "DK",
   "app": 5,
   "films": [
@@ -334,57 +334,6 @@
     {
       "danishTitle": "",
       "originalTitle": "",
-      "stream": [
-        "Prime Video"
-      ],
-      "free": [
-        "Filmstriben"
-      ],
-      "rent": [
-        {
-          "service": "Blockbuster",
-          "price": 29
-        },
-        {
-          "service": "Apple TV",
-          "price": 39
-        },
-        {
-          "service": "Rakuten TV",
-          "price": 39
-        },
-        {
-          "service": "Amazon Video",
-          "price": 39
-        },
-        {
-          "service": "Viaplay",
-          "price": 49
-        },
-        {
-          "service": "SF Anytime",
-          "price": 49
-        }
-      ],
-      "checked": "2026-11-02",
-      "added": "2026-11-02",
-      "id": "jungle",
-      "title": "Jungle",
-      "year": 2017,
-      "runtime": 115,
-      "genres": [
-        "Eventyr",
-        "Thriller",
-        "Biografi"
-      ],
-      "note": "Daniel Radcliffe spiller eventyreren Yossi Ghinsberg, der i 1981 farer vild i Bolivias regnskov – bygget på en sand historie.",
-      "poster": "https://images.justwatch.com/poster/19536732/s332/jungle.jpg",
-      "wiki": "Jungle (2017 film)",
-      "justwatch": "https://www.justwatch.com/dk/movie/jungle"
-    },
-    {
-      "danishTitle": "",
-      "originalTitle": "",
       "stream": [],
       "free": [],
       "rent": [],
@@ -424,30 +373,6 @@
       "poster": "https://images.justwatch.com/poster/341442240/s332/marty-supreme.jpg",
       "wiki": "Marty Supreme",
       "justwatch": "https://www.justwatch.com/dk/movie/marty-supreme"
-    },
-    {
-      "danishTitle": "",
-      "originalTitle": "Der Tiger",
-      "stream": [
-        "Prime Video"
-      ],
-      "free": [],
-      "rent": [],
-      "checked": "2026-11-02",
-      "added": "2026-11-02",
-      "id": "the-tank",
-      "title": "The Tank",
-      "year": 2025,
-      "runtime": 117,
-      "genres": [
-        "Krig",
-        "Action",
-        "Drama"
-      ],
-      "note": "Tysk krigsfilm om besætningen på en Tiger-kampvogn, der sendes på en hemmelig mission bag fjendens linjer på Østfronten i 1943.",
-      "poster": "https://images.justwatch.com/poster/340617612/s332/the-tiger-2025.jpg",
-      "wiki": "Der Tiger (film)",
-      "justwatch": "https://www.justwatch.com/dk/movie/the-tiger-2025"
     }
   ]
 }
