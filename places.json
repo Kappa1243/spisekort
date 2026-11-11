@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-04",
+  "updated": "2026-11-11",
   "places": [
     {
       "id": "bar-solis",
@@ -5190,6 +5190,72 @@
       ],
       "hoursSrc": "google",
       "hoursDate": "2026-11-04"
+    },
+    {
+      "id": "baest",
+      "name": "Bæst",
+      "type": "Italiensk",
+      "address": "Guldbergsgade 29, 2200 København N",
+      "note": "Italiensk-inspireret pizzeria på Nørrebro med egen ost og charcuteri.",
+      "lat": 55.6923117,
+      "lon": 12.5560779,
+      "approx": false,
+      "price": 2,
+      "priceSrc": "google",
+      "hours": [
+        [
+          [
+            720,
+            870
+          ],
+          [
+            1020,
+            1320
+          ]
+        ],
+        [
+          [
+            1020,
+            1320
+          ]
+        ],
+        [
+          [
+            1020,
+            1320
+          ]
+        ],
+        [
+          [
+            1020,
+            1320
+          ]
+        ],
+        [
+          [
+            1020,
+            1320
+          ]
+        ],
+        [
+          [
+            1020,
+            1320
+          ]
+        ],
+        [
+          [
+            720,
+            870
+          ],
+          [
+            1020,
+            1320
+          ]
+        ]
+      ],
+      "hoursSrc": "google",
+      "hoursDate": "2026-11-11"
     }
   ]
 }
