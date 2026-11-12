@@ -29,6 +29,7 @@ Et personligt kort over gode restauranter i København.
 - `type`: madtype på dansk med stort forbogstav (fx Italiensk, Fransk, Nordisk, Bar). Bliver til filtrene i appen.
 - `lat`/`lon`: koordinater. `approx: true` betyder omtrentlige; appen slår så adressen op og gør positionen præcis.
 - `michelin` (valgfrit): antal Michelin-stjerner (1-3) vises som røde stjerner; `0` betyder "i Michelin Guiden uden stjerner" (fx Bib Gourmand) og vises med et guide-mærke. Udelad feltet for steder, der ikke er i guiden.
+- `website` (valgfrit): link til restaurantens egen hjemmeside (menu, bordbestilling). Vises som knappen "Hjemmeside" på stedets kort. Mangler feltet, viser appen "Søg efter hjemmeside" i stedet.
 - Fjern et sted ved at slette det fra listen.
 
 ## Filmliste

@@ -845,6 +845,9 @@ ol#list{list-style:none;margin:0;padding:0}
 /* place */
 .paddr{margin:0 0 16px;font-size:15px;color:var(--ink);user-select:text;-webkit-user-select:text}
 .pactions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pactions .web{grid-column:1/-1;min-width:0}
+.pactions .web span{overflow:hidden;text-overflow:ellipsis}
+.pactions .web .dom{font-weight:500;opacity:.6}
 .pnote{margin:16px 0 0;padding:12px 14px;background:var(--chip);border-radius:12px;font-size:14px}
 .pmeta{margin:12px 0 0;font-size:12px;color:var(--muted)}
 .pfoot{margin-top:10px}
@@ -953,6 +956,7 @@ ol#list{list-style:none;margin:0;padding:0}
       <div class="pactions">
         <a class="btn primary" id="pRoute" href="#" target="_blank" rel="noopener">Rute</a>
         <button type="button" class="btn" id="pCopy">Kopiér adresse</button>
+        <a class="btn web" id="pWeb" href="#" target="_blank" rel="noopener"></a>
       </div>
       <p class="pnote" id="pNote" hidden></p>
       <details class="hweek" id="pWeek" hidden><summary>Åbningstider</summary><table id="pWeekT"></table></details>
@@ -1456,6 +1460,9 @@ function renderPlace(){
   $('#pAddr').textContent=p.address||'';
   $('#pRoute').href='https://maps.apple.com/?daddr='+encodeURIComponent(p.address||p.name);
   $('#pCopy').textContent='Kopiér adresse';
+  var w=$('#pWeb');
+  if(p.website){w.href=p.website;w.innerHTML='<span>Hjemmeside</span><span class="dom">'+esc(p.website.replace(/^https?:\/\/(www\.)?/,'').split('/')[0])+'</span><span aria-hidden="true">↗</span>'}
+  else{w.href='https://www.google.com/search?q='+encodeURIComponent(p.name+' '+(p.address||'København'));w.innerHTML='<span>Søg efter hjemmeside</span><span aria-hidden="true">↗</span>'}
   var n=$('#pNote');n.hidden=!p.note;n.textContent=p.note||'';
   $('#pApprox').hidden=!(p.approx||!hasPos(p));
   $('#pApprox').textContent=hasPos(p)?'Positionen på kortet er omtrentlig, indtil appen har slået adressen op.':'Stedet har ingen position på kortet endnu, så afstanden kendes ikke.';
@@ -1670,7 +1677,7 @@ function clean(list){
   (list||[]).forEach(function(s){
     if(!s||!s.id||!s.name||s.removed||seen[s.id])return;seen[s.id]=1;
     var lat=typeof s.lat==='number'&&isFinite(s.lat)?s.lat:null,lon=typeof s.lon==='number'&&isFinite(s.lon)?s.lon:null;
-    var p={id:String(s.id),name:String(s.name),type:cap(String(s.type||'')),address:String(s.address||''),note:String(s.note||''),lat:lat,lon:lon,approx:s.approx!==false||lat==null,michelin:typeof s.michelin==='number'&&s.michelin>=0?Math.min(3,Math.floor(s.michelin)):null,price:(s.price===1||s.price===2||s.price===3)?s.price:null,priceSrc:String(s.priceSrc||''),priceRaw:String(s.priceRaw||''),hours:(Array.isArray(s.hours)&&s.hours.length===7)?s.hours:null,hoursSrc:String(s.hoursSrc||''),hoursDate:String(s.hoursDate||'')};
+    var p={id:String(s.id),name:String(s.name),type:cap(String(s.type||'')),address:String(s.address||''),note:String(s.note||''),lat:lat,lon:lon,approx:s.approx!==false||lat==null,michelin:typeof s.michelin==='number'&&s.michelin>=0?Math.min(3,Math.floor(s.michelin)):null,price:(s.price===1||s.price===2||s.price===3)?s.price:null,priceSrc:String(s.priceSrc||''),priceRaw:String(s.priceRaw||''),hours:(Array.isArray(s.hours)&&s.hours.length===7)?s.hours:null,hoursSrc:String(s.hoursSrc||''),hoursDate:String(s.hoursDate||''),website:/^https?:\/\//.test(String(s.website||''))?String(s.website):''};
     var g=geoCache[geoKey(p)];
     if(g&&p.approx){p.lat=g.lat;p.lon=g.lon;p.approx=false}
     out.push(p);
