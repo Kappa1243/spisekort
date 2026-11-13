@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-09",
+  "updated": "2026-11-13",
   "country": "DK",
   "app": 5,
   "films": [
@@ -356,27 +356,43 @@
       "justwatch": "https://www.justwatch.com/dk/movie/casino-royale"
     },
     {
+      "id": "the-score",
+      "title": "The Score",
       "danishTitle": "",
       "originalTitle": "",
-      "stream": [
-        "Prime Video"
-      ],
-      "free": [],
-      "rent": [],
-      "checked": "2026-11-09",
-      "added": "2026-11-02",
-      "id": "marty-supreme",
-      "title": "Marty Supreme",
-      "year": 2025,
-      "runtime": 149,
+      "year": 2001,
+      "runtime": 124,
       "genres": [
-        "Drama",
-        "Komedie"
+        "Krimi",
+        "Thriller",
+        "Drama"
       ],
-      "note": "Josh Safdies film med Timothée Chalamet som en stædig bordtennisspiller i 1950'ernes New York, der jagter verdensmesterskabet.",
-      "poster": "https://images.justwatch.com/poster/341442240/s332/marty-supreme.jpg",
-      "wiki": "Marty Supreme",
-      "justwatch": "https://www.justwatch.com/dk/movie/marty-supreme"
+      "note": "Frank Oz' kupfilm, hvor en aldrende kasseknækker spillet af Robert De Niro lader sig lokke til et sidste job i Montreal sammen med Edward Norton og Marlon Brando.",
+      "poster": "https://images.justwatch.com/poster/175961256/s332/the-score.jpg",
+      "wiki": "The Score (2001 film)",
+      "justwatch": "https://www.justwatch.com/dk/movie/the-score",
+      "stream": [],
+      "free": [],
+      "rent": [
+        {
+          "service": "Amazon Video",
+          "price": 39
+        },
+        {
+          "service": "Apple TV",
+          "price": 39
+        },
+        {
+          "service": "Blockbuster",
+          "price": 39
+        },
+        {
+          "service": "SF Anytime",
+          "price": 49
+        }
+      ],
+      "checked": "2026-11-13",
+      "added": "2026-11-13"
     }
   ]
 }
