@@ -31,11 +31,15 @@ jobs:
           cache: pip
           cache-dependency-path: fiskekort/pipeline/requirements.txt
 
+      - name: Uge-nøgle til cache
+        id: wk
+        run: echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+
       - name: Cache kildedata
         uses: actions/cache@v4
         with:
           path: ~/.cache/fiskekort
-          key: fiskekort-src-${{ github.run_id }}
+          key: fiskekort-src-${{ steps.wk.outputs.week }}
           restore-keys: fiskekort-src-
 
       - run: pip install -r fiskekort/pipeline/requirements.txt
@@ -44,6 +48,7 @@ jobs:
         id: build
         run: python -u fiskekort/pipeline/build.py --out fiskekort/data --cache ~/.cache/fiskekort
 
+      # Ved fejl skriver build.py kun _build_log.json (data røres ikke), så loggen kan ses i repoet.
       - name: Commit data
         if: always()
         run: |

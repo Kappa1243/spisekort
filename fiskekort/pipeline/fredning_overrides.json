@@ -1,0 +1,60 @@
+{
+  "_info": "Håndkontrollerede rettelser til Fiskeristyrelsens fredningsbælte-lag. Matcher på NAVN (navn = præcist, navn_re = regex) og LOVGRUNDLA (lov = regex), evt. areal (km2_min/km2_max). t: hel = alt fiskeri forbudt hele året, per = forbudt i perioderne p [[måned, dag, måned, dag]], omr = særlige regler men ikke fiskeforbud for stangfiskeri. stang: 1 = stangfiskeri tilladt i zonen. Kontrolleret 16-11-2026 mod retsinformation.dk.",
+  "rules": [
+    {"navn": "Odense Fjord særfredning", "lov": "1481.*§ ?9", "t": "per", "p": [[10, 1, 3, 7]],
+     "note": "Fiskeri med stang og lette håndredskaber er forbudt fra 1. oktober til og med første fredag i marts. Desuden regler for ruser og garn.", "kilde": "Bek. 1481/2019 § 9"},
+    {"navn_re": "^(OdenseFjord særfredning|Odense Fjord særfredning|Kertemindevej til udløb|Odense gl\\.? ?kanal)$", "lov": "1481.*§ ?8", "t": "per", "p": [[10, 1, 3, 7]],
+     "note": "Fiskeri med stang og lette håndredskaber er forbudt fra 1. oktober til og med første fredag i marts. Garnfiskeri er forbudt hele året.", "kilde": "Bek. 1481/2019 § 8"},
+    {"navn": "Odense yderfjord", "lov": "1481.*§ ?10", "t": "omr",
+     "note": "Kun garn med en samlet længde over 135 m er forbudt.", "kilde": "Bek. 1481/2019 § 10"},
+    {"navn_re": "^(Bogense Bybæk|Brende Å|Pugemølle Å|Hårby Å|Vindinge Å - Ørbæk Å|Holckenhavn Dæmningen|Holckenhavn Fjord)$", "lov": "1481", "t": "hel",
+     "note": "Alt fiskeri er forbudt hele året.", "kilde": "Bek. 1481/2019 §§ 4-7 og 14"},
+    {"navn": "Holckenhavn Bugt", "lov": "1481", "t": "hel", "stang": 1,
+     "note": "Fiskeri er forbudt, undtagen med ruser og med stang eller lette håndredskaber.", "kilde": "Bek. 1481/2019 § 14, stk. 4"},
+    {"navn": "Nakkebølle Fjord", "lov": "1481", "t": "omr",
+     "note": "Kun fiskeri med garn er forbudt.", "kilde": "Bek. 1481/2019 § 15"},
+
+    {"navn_re": "^(Brede Å|Sneum Å|Varde Å|Konge Å 1600 meter|Konge Å 500 meter|Brøns Å|Vester Vedsted ferskvand|Darum Sluse)$", "lov": "1420", "t": "hel",
+     "note": "Alt fiskeri er forbudt hele året.", "kilde": "Bek. 204/2024 (afløser 1420/2013) §§ 11-17"},
+
+    {"navn": "Piggen til Randers Havn", "lov": "1409", "t": "omr",
+     "note": "Kun fiskeri med nedgarn er forbudt.", "kilde": "Bek. 1409/2013 § 5"},
+    {"navn": "Melbank Fyr området", "lov": "1409", "t": "omr",
+     "note": "Kun fiskeri med nedgarn er forbudt.", "kilde": "Bek. 1409/2013 § 6"},
+
+    {"navn": "Roskilde Fjord", "lov": "1413", "km2_min": 10, "t": "omr",
+     "note": "Højst 3 havørreder pr. person pr. dag og regler for garn. Stangfiskeri er tilladt.", "kilde": "Bek. 1413/2021 § 19"},
+    {"navn": "Karrebæk Fjord m.m.", "lov": "1413", "t": "omr",
+     "note": "Højst 1 havørred og 3 aborrer pr. person pr. dag, gedder skal genudsættes, forbud mod stangende redskaber (fx lyster) og regler for garn.", "kilde": "Bek. 1413/2021 § 21"},
+    {"navn": "Præstø Fjord", "lov": "781", "km2_min": 10, "t": "omr",
+     "note": "Højst 1 havørred og 3 aborrer pr. person pr. dag og regler for garn. Gedde: særlige regler.", "kilde": "Bek. 1413/2021 § 13, stk. 3-4"},
+    {"navn": "Præstø Fjord", "lov": "781", "km2_max": 10, "t": "hel",
+     "note": "Alt fiskeri er forbudt, undtagen med ruser.", "kilde": "Bek. 1413/2021 § 13, stk. 1-2"},
+    {"navn": "Holbæk Fjord, Vest", "lov": "1413", "t": "hel",
+     "note": "Alt fiskeri er forbudt hele året, undtagen med ruser.", "kilde": "Bek. 1413/2021 § 5"},
+    {"navn": "Holbæk Fjord, Øst", "lov": "1413", "t": "omr",
+     "note": "Formentlig området øst for fredningsbæltet, hvor kun bundsatte nedgarn må bruges som garn. Tjek kortet i bekendtgørelsen.", "kilde": "Bek. 1413/2021 § 5, stk. 3"},
+    {"navn": "Kattinge Vig", "lov": "1413", "t": "omr",
+     "note": "Kun stang og ruser er tilladt. Trolling og dørgefiskeri er forbudt.", "kilde": "Bek. 1413/2021 § 20"},
+    {"navn": "Tempelkrogen", "lov": "1413", "t": "omr",
+     "note": "Kun stang og ruser er tilladt. Højst 3 havørreder pr. person pr. dag. Trolling og dørgefiskeri er forbudt.", "kilde": "Bek. 1413/2021 § 18"},
+
+    {"navn_re": "^(Jungshoved Nor|Stege Nor|Fane Fjord)$", "lov": "689", "t": "omr",
+     "note": "Særlige regler for gedde og aborre (bl.a. må gedder ikke hjemtages). Ikke et generelt fiskeforbud.", "kilde": "Bek. 1673/2025 (afløser 689/2020)"},
+
+    {"navn": "Nybøl Nor", "lov": "1258.*§ ?2", "t": "omr",
+     "note": "Kun nedgarn er forbudt fra 16. september til 15. marts.", "kilde": "Bek. 1258/2016 § 2"},
+    {"navn": "Nybøl Nor", "lov": "1258.*§ ?4", "t": "omr",
+     "note": "Fangstbegrænsning for havørred. Tjek bekendtgørelsens § 4.", "kilde": "Bek. 1258/2016 § 4"},
+
+    {"navn_re": "^(Udløb fra Ringkøbing Fj.*|Slusen fra Ringkøbing Fj.*)$", "lov": "1482", "t": "per", "p": [[10, 1, 2, 29]],
+     "note": "Stang og snøre er tilladt 1. marts – 30. september. Resten af året er alt fiskeri forbudt. Laks og havørred skal genudsættes.", "kilde": "Bek. 1482/2013 §§ 9 og 13"},
+
+    {"navn": "Nissum Fjord", "lov": "1311", "txt_re": "§ ?12", "t": "hel", "stang": 1,
+     "note": "Inden for 750 m af udløbet er kun lette håndredskaber (stang) tilladt.", "kilde": "Bek. 1311/2021 § 12"},
+    {"navn_re": "^Udløb fra Nissum Fjord i", "lov": "1311", "t": "hel", "stang": 1,
+     "note": "Formentlig Thorsminde-udløbet: inden for 750 m er kun lette håndredskaber (stang) tilladt. Tjek kortet.", "kilde": "Bek. 1311/2021 § 12"},
+    {"navn": "Felsted Kog", "lov": "1311", "t": "hel",
+     "note": "Alt fiskeri er forbudt.", "kilde": "Bek. 1311/2021 §§ 10-11"}
+  ]
+}

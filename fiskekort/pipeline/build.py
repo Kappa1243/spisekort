@@ -177,9 +177,7 @@ def build_segments(lines_wgs, countries):
     log(f"Kyststrækninger i Danmark: {len(segs)}")
 
     out = []
-    right_in_land = left_in_land = tested = 0
-    dk = countries["DNK"]
-    for i, (s, m) in enumerate(zip(segs, mids)):
+    for s, m in zip(segs, mids):
         (x0, y0), (x1, y1) = s.coords[0], s.coords[-1]
         chord = math.hypot(x1 - x0, y1 - y0)
         lon0, lat0 = TO_WGS.transform(x0, y0)
@@ -189,45 +187,76 @@ def build_segments(lines_wgs, countries):
         else:
             az, _, _ = GEOD.inv(lon0, lat0, lon1, lat1)
             bearing = int(round((az + (270 if flip else 90)) % 360))
-            if i % 10 == 0:  # stikprøve: ligger "havsiden" faktisk i vand?
-                tested += 1
-                ang = math.radians(bearing)
-                px, py = m.x + 400 * math.sin(ang), m.y + 400 * math.cos(ang)
-                qx, qy = m.x - 400 * math.sin(ang), m.y - 400 * math.cos(ang)
-                right_in_land += dk.contains(Point(px, py))
-                left_in_land += dk.contains(Point(qx, qy))
         out.append({"geom": s, "mid": m, "b": bearing})
-    DISCOVERY["coast_direction_check"] = {
-        "tested": tested,
-        "sea_side_on_land_pct": round(100 * right_in_land / max(tested, 1), 1),
-        "land_side_on_land_pct": round(100 * left_in_land / max(tested, 1), 1),
-    }
-    log(f"Retningstjek: {DISCOVERY['coast_direction_check']}")
     return out
 
 
-def build_windpoints(segs):
-    cells = defaultdict(list)
-    for s in segs:
-        m = s["mid"]
-        x, y = m.x, m.y
-        if s["b"] >= 0:
-            a = math.radians(s["b"])
-            x, y = x + WIND_OFFSET * math.sin(a), y + WIND_OFFSET * math.cos(a)
-        lon, lat = TO_WGS.transform(x, y)
-        key = (int((lat - BBOX[1]) // GRID_DLAT), int((lon - BBOX[0]) // GRID_DLON))
-        cells[key].append((lon, lat, s))
-    points = []
-    for key in sorted(cells):
-        pts = cells[key]
-        lon = sum(p[0] for p in pts) / len(pts)
-        lat = sum(p[1] for p in pts) / len(pts)
+def _offset(s, dist):
+    m = s["mid"]
+    if s["b"] < 0:
+        return m.x, m.y
+    a = math.radians(s["b"])
+    return m.x + dist * math.sin(a), m.y + dist * math.cos(a)
+
+
+def build_windpoints(segs, water=None, max_points=240):
+    """Ét vindpunkt pr. (celle, vandområde), placeret ude i vandet tæt på kysten.
+    Gruppering pr. vandområde (VP3) holder fx Vesterhavet og Ringkøbing Fjord adskilt."""
+    if water is not None:
+        shapely.prepare(water)
+    for dlat, dlon in ((0.3, 0.45), (0.4, 0.6), (0.5, 0.75), (0.7, 1.05)):
+        groups = defaultdict(list)
+        for s in segs:
+            lon, lat = TO_WGS.transform(s["mid"].x, s["mid"].y)
+            key = (int((lat - BBOX[1]) // dlat), int((lon - BBOX[0]) // dlon), s.get("w", -1))
+            groups[key].append(s)
+        if len(groups) <= max_points:
+            break
+    points, on_land = [], 0
+    for key in sorted(groups):
+        members = groups[key]
+        cx = sum(s["mid"].x for s in members) / len(members)
+        cy = sum(s["mid"].y for s in members) / len(members)
+        best = None
+        for dist in (1500, 800, 3000):
+            cands = [_offset(s, dist) for s in members if s["b"] >= 0]
+            if water is not None:
+                cands = [c for c in cands if shapely.contains_xy(water, *c)]
+            if cands:
+                best = min(cands, key=lambda c: (c[0] - cx) ** 2 + (c[1] - cy) ** 2)
+                break
+        if best is None:
+            best = (cx, cy)
+            on_land += 1
+        lon, lat = TO_WGS.transform(*best)
         idx = len(points)
         points.append([round(lon, 3), round(lat, 3)])
-        for p in pts:
-            p[2]["g"] = idx
-    log(f"Vindpunkter: {len(points)}")
+        for s in members:
+            s["g"] = idx
+    DISCOVERY["windpoints"] = {"count": len(points), "cell": [dlat, dlon], "not_in_water": on_land}
+    log(f"Vindpunkter: {len(points)} (celle {dlat}x{dlon}, {on_land} uden vandplacering)")
     return points
+
+
+def direction_check(segs, water):
+    """Andel strækninger, hvor 'havsiden' ligger på land og 'landsiden' i vand (omvendt retning)."""
+    shapely.prepare(water)
+    good = bad = 0
+    for s in segs[::5]:
+        if s["b"] < 0:
+            continue
+        sea = shapely.contains_xy(water, *_offset(s, 150))
+        land = shapely.contains_xy(water, *_offset(s, -150))
+        if sea and not land:
+            good += 1
+        elif land and not sea:
+            bad += 1
+    tested = good + bad
+    pct = 100 * bad / max(tested, 1)
+    DISCOVERY["direction_check_water"] = {"decisive": tested, "correct": good, "reversed": bad,
+                                          "reversed_pct": round(pct, 2)}
+    log(f"Retningstjek mod VP3-vand: {good} rigtige, {bad} omvendte ({pct:.1f} %)")
+    return pct
 
 
 # ---------------------------------------------------------------- ArcGIS
@@ -482,9 +511,49 @@ def classify_fred(title: str, attrs: dict) -> tuple[str, str]:
 
 
 OMR_KM2 = 10
+OVERRIDES_FILE = Path(__file__).resolve().parent / "fredning_overrides.json"
+
+
+def load_overrides():
+    try:
+        return json.loads(OVERRIDES_FILE.read_text(encoding="utf-8")).get("rules", [])
+    except FileNotFoundError:
+        return []
+
+
+def apply_override(props: dict, rules, used: defaultdict):
+    navn, lov, txt, km2 = props.get("n", ""), props.get("lov", ""), props.get("txt", ""), props.get("km2", 0)
+    for i, r in enumerate(rules):
+        if "navn" in r and navn != r["navn"]:
+            continue
+        if "navn_re" in r and not re.search(r["navn_re"], navn):
+            continue
+        if "lov" in r and not re.search(r["lov"], lov):
+            continue
+        if "txt_re" in r and not re.search(r["txt_re"], txt):
+            continue
+        if "km2_min" in r and km2 < r["km2_min"]:
+            continue
+        if "km2_max" in r and km2 > r["km2_max"]:
+            continue
+        props["t"] = r["t"]
+        props.pop("p", None)
+        props.pop("stang", None)
+        if r.get("p"):
+            props["p"] = r["p"]
+        if r.get("stang"):
+            props["stang"] = 1
+        props["note"] = r.get("note", "")[:300]
+        props["kilde"] = r.get("kilde", "")[:120]
+        props["v"] = 1  # kontrolleret mod bekendtgørelsen
+        used[i] += 1
+        return True
+    return False
 
 
 def build_fredning(layers):
+    rules = load_overrides()
+    used = defaultdict(int)
     feats, seen = [], set()
     unparsed = defaultdict(int)
     texts = defaultdict(int)
@@ -517,6 +586,8 @@ def build_fredning(layers):
             if lov:
                 props["lov"] = lov[:120]
             props["km2"] = round(area_km2, 2)
+            if not apply_override(props, rules, used) and (area_km2 > 1 or props["t"] in ("ukendt", "omr")):
+                props["uv"] = 1  # stor eller uklar zone, ikke kontrolleret
             props["id"] = len(feats)
             g = g.simplify(0.00002)
             feats.append({"type": "Feature", "id": len(feats), "properties": props,
@@ -525,6 +596,9 @@ def build_fredning(layers):
     DISCOVERY["fred_unparsed"] = dict(unparsed)
     DISCOVERY["fred_types"] = {t: sum(1 for f in feats if f["properties"]["t"] == t)
                                for t in ("hel", "per", "ukendt", "omr")}
+    DISCOVERY["fred_overrides_used"] = {f"{i}:{(rules[i].get('navn') or rules[i].get('navn_re'))[:40]}": n
+                                        for i, n in sorted(used.items())}
+    DISCOVERY["fred_overrides_unused"] = [i for i in range(len(rules)) if i not in used]
     for f in feats:  # afrund koordinater
         geom = f["geometry"]
         if geom["type"] == "Polygon":
@@ -610,11 +684,13 @@ def build_vand():
     DISCOVERY["vp3_layer"] = {"layer": VP3_LAYER, "count": len(feats), "fields": keys,
                               "distinct": distinct, "sample": props[:2]}
     out = []
+    water = []
     for f, p in zip(feats, props):
-        if str(p.get("ov_kat", "Kystvand")) != "Kystvand":
-            continue
         g = shape(f["geometry"]) if f.get("geometry") else None
         if g is None or g.is_empty:
+            continue
+        water.append(g)
+        if str(p.get("ov_kat", "Kystvand")) != "Kystvand":
             continue
         g = g.simplify(0.0004, preserve_topology=True)
         gj = json.loads(json.dumps(mapping(g)))
@@ -631,7 +707,8 @@ def build_vand():
         pr["color"] = STATUS_COLORS[pr["sm"]]
         out.append({"type": "Feature", "properties": pr, "geometry": gj})
     DISCOVERY["vp3_sm_counts"] = {c: sum(1 for f in out if f["properties"]["sm"] == c) for c in range(6)}
-    return out
+    water_utm = shapely.union_all([transform(TO_UTM.transform, g) for g in water]).buffer(0)
+    return out, water_utm
 
 
 def discover_vp3():
@@ -666,95 +743,262 @@ def discover_vp3():
     DISCOVERY["vp3_samples"] = samples
 
 
+# ---------------------------------------------------------------- dybde og bund
+# Indsættes i build.py. Dybde fra EMODnet Bathymetry DTM 2024 (~115 m grid, ERDDAP),
+# bundtype fra EUSeaMap 2023 (EMODnet Seabed Habitats, Folk 5-klasser).
+BATHY_URL = ("https://erddap.emodnet.eu/erddap/griddap/bathymetry_dtm_2024.nc?"
+             "elevation[({lat0}):1:({lat1})][({lon0}):1:({lon1})]")
+SUBSTRATE_WFS = [
+    "https://ows.emodnet-seabedhabitats.eu/geoserver/emodnet_open/wfs",
+    "https://ows.emodnet-seabedhabitats.eu/geoserver/emodnet_view/wfs",
+]
+SUBSTRATE_CLASSES = [  # (kode, regex mod klassenavn, dansk navn)
+    (5, r"rock|boulder", "Sten/klippe"),
+    (3, r"coarse", "Grus/groft"),
+    (4, r"mixed", "Blandet"),
+    (2, r"sand", "Sand"),
+    (1, r"mud", "Mudder"),
+]
+PROBE_M = (150, 400)  # målepunkter ud fra kysten
+
+
+def load_bathymetry(cache: Path):
+    """-> (lats, lons, depth[m, positiv nedad]) som numpy-arrays."""
+    import netCDF4  # noqa: PLC0415
+    url = BATHY_URL.format(lat0=BBOX[1], lat1=BBOX[3], lon0=BBOX[0], lon1=BBOX[2])
+    p = download(url, cache / "bathymetry_dk.nc", max_age_days=180)
+    with netCDF4.Dataset(p) as ds:
+        lats = np.array(ds.variables["latitude"][:], dtype="f8")
+        lons = np.array(ds.variables["longitude"][:], dtype="f8")
+        z = np.ma.filled(ds.variables["elevation"][:].astype("f4"), np.nan)
+    DISCOVERY["bathy"] = {"shape": list(z.shape), "lat": [float(lats.min()), float(lats.max())],
+                          "lon": [float(lons.min()), float(lons.max())],
+                          "z_pct": [float(np.nanpercentile(z, q)) for q in (1, 50, 99)]}
+    return lats, lons, z
+
+
+def sample_grid(lats, lons, z, lon, lat):
+    i = int(round((lat - lats[0]) / (lats[1] - lats[0])))
+    j = int(round((lon - lons[0]) / (lons[1] - lons[0])))
+    if 0 <= i < len(lats) and 0 <= j < len(lons):
+        return float(z[i, j])
+    return float("nan")
+
+
+def load_substrate():
+    """Henter bundtype-polygoner for Danmark fra EMODnet (WFS, bbox)."""
+    for ep in SUBSTRATE_WFS:
+        try:
+            names = wfs_layers(ep)
+        except Exception as e:  # noqa: BLE001
+            DISCOVERY.setdefault("substrate_errors", []).append(f"{ep}: {e}"[:200])
+            continue
+        cands = [n for n, t in names if re.search(r"subs", n, re.I)]
+        DISCOVERY.setdefault("substrate_layers", {})[ep] = cands[:30]
+        # foretræk nyeste "full"/ikke-gruppe-lag
+        cands.sort(key=lambda n: (("2023" not in n), ("group" in n), len(n)))
+        for n in cands:
+            try:
+                r = get(ep, params={"service": "WFS", "version": "2.0.0", "request": "GetFeature",
+                                    "typeNames": n, "outputFormat": "application/json",
+                                    "srsName": "EPSG:4326",
+                                    "bbox": f"{BBOX[1]},{BBOX[0]},{BBOX[3]},{BBOX[2]},urn:ogc:def:crs:EPSG::4326"},
+                        timeout=600, tries=2)
+                j = r.json()
+                feats = j.get("features", [])
+                if not feats:
+                    continue
+                keys = sorted({k for f in feats[:200] for k in (f.get("properties") or {})})
+                DISCOVERY["substrate_used"] = {"endpoint": ep, "layer": n, "count": len(feats), "fields": keys,
+                                               "sample": [f.get("properties") for f in feats[:2]]}
+                return feats
+            except Exception as e:  # noqa: BLE001
+                DISCOVERY.setdefault("substrate_errors", []).append(f"{n}: {e}"[:200])
+    return []
+
+
+def substrate_code(props: dict) -> int:
+    text = " ".join(str(v) for k, v in props.items()
+                    if isinstance(v, str) and re.search(r"subs|folk|class|descr|name", k, re.I))
+    for code, rx, _ in SUBSTRATE_CLASSES:
+        if re.search(rx, text, re.I):
+            return code
+    return 0
+
+
+def place_quality(segs, cache: Path):
+    """Tilføjer d1/d2 (dybde i m ved 150/400 m ud) og s (bundtype-kode) til segmenterne."""
+    try:
+        lats, lons, z = load_bathymetry(cache)
+        # EMODnet: elevation er negativ under havet. Tjek fortegn med stikprøve.
+        probe = []
+        for s in segs[::50]:
+            if s["b"] < 0:
+                continue
+            a = math.radians(s["b"])
+            x, y = s["mid"].x + 2000 * math.sin(a), s["mid"].y + 2000 * math.cos(a)
+            lon, lat = TO_WGS.transform(x, y)
+            probe.append(sample_grid(lats, lons, z, lon, lat))
+        sign = -1.0 if np.nanmedian(probe) < 0 else 1.0
+        DISCOVERY["bathy_sign"] = sign
+        n_ok = 0
+        for s in segs:
+            if s["b"] < 0:
+                continue
+            a = math.radians(s["b"])
+            for key, dist in zip(("d1", "d2"), PROBE_M):
+                x, y = s["mid"].x + dist * math.sin(a), s["mid"].y + dist * math.cos(a)
+                lon, lat = TO_WGS.transform(x, y)
+                d = sign * sample_grid(lats, lons, z, lon, lat)
+                if np.isfinite(d) and d > 0:
+                    s[key] = round(d, 1)
+            n_ok += "d2" in s
+        log(f"Dybde fundet for {n_ok} strækninger")
+    except Exception:  # noqa: BLE001
+        log("FEJL dybde:\n" + traceback.format_exc())
+
+    try:
+        feats = load_substrate()
+        if feats:
+            polys = []
+            codes = []
+            for f in feats:
+                c = substrate_code(f.get("properties") or {})
+                if c and f.get("geometry"):
+                    polys.append(transform(TO_UTM.transform, shape(f["geometry"])))
+                    codes.append(c)
+            tree = shapely.STRtree(polys)
+            n_ok = 0
+            for s in segs:
+                p = s["mid"]
+                if s["b"] >= 0:
+                    a = math.radians(s["b"])
+                    p = Point(p.x + PROBE_M[0] * math.sin(a), p.y + PROBE_M[0] * math.cos(a))
+                hit = tree.query_nearest(p, max_distance=800)
+                if len(hit):
+                    s["s"] = codes[int(hit[0])]
+                    n_ok += 1
+            DISCOVERY["substrate_counts"] = {c: codes.count(c) for c in set(codes)}
+            log(f"Bundtype fundet for {n_ok} strækninger")
+    except Exception:  # noqa: BLE001
+        log("FEJL bundtype:\n" + traceback.format_exc())
+
+
 # ---------------------------------------------------------------- main
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default=str(Path(__file__).resolve().parent.parent / "data"))
     ap.add_argument("--cache", default=str(Path.home() / ".cache" / "fiskekort"))
     ap.add_argument("--coast-file", help="lokal kystlinje (til test)")
-    ap.add_argument("--skip-remote", action="store_true", help="spring ArcGIS/VP3 over (test)")
+    ap.add_argument("--skip-remote", action="store_true", help="spring ArcGIS/VP3/dybde over (test)")
     a = ap.parse_args()
     out, cache = Path(a.out), Path(a.cache)
     out.mkdir(parents=True, exist_ok=True)
     cache.mkdir(parents=True, exist_ok=True)
     started = datetime.now(timezone.utc)
-    ok = True
+    errors: list[str] = []
     meta = {"built": started.isoformat(timespec="seconds"), "sources": {}, "counts": {}}
+    try:
+        prev = json.loads((out / "meta.json").read_text(encoding="utf-8")).get("counts", {})
+    except Exception:  # noqa: BLE001
+        prev = {}
 
-    # 1) fredningsbælter
+    # 1) fredningsbælter (kritisk: uden dem vises ingen forbud)
     fred_feats = []
     if not a.skip_remote:
         try:
-            layers = fetch_fredning()
-            fred_feats = build_fredning(layers)
-            meta["sources"]["fredning"] = "Fiskeristyrelsen, Kort over fredningsbælter (ArcGIS)"
+            fred_feats = build_fredning(fetch_fredning())
+            if not fred_feats:
+                raise RuntimeError("ingen fredningszoner hentet")
+            meta["sources"]["fredning"] = "Fiskeristyrelsen, Fredningsbælter (ArcGIS) + håndkontrollerede rettelser"
             log(f"Fredningszoner: {len(fred_feats)} {DISCOVERY.get('fred_types')}")
         except Exception:  # noqa: BLE001
+            errors.append("fredning")
             log("FEJL fredningsbælter:\n" + traceback.format_exc())
-        try:
-            discover_geoservers()
-        except Exception:  # noqa: BLE001
-            log("FEJL geoserver-discovery:\n" + traceback.format_exc())
-    vand_feats = []
+
+    # 2) vandkvalitet + vandpolygon (kritisk: bruges til vindpunkter og retningstjek)
+    vand_feats, water = [], None
     if not a.skip_remote:
         try:
-            vand_feats = build_vand()
+            vand_feats, water = build_vand()
             meta["sources"]["vand"] = "Miljøstyrelsen, vandområdeplaner 2021-2027 (VP3), kystvande"
             log(f"Kystvandområder: {len(vand_feats)} {DISCOVERY.get('vp3_sm_counts')}")
         except Exception:  # noqa: BLE001
+            errors.append("vand")
             log("FEJL VP3:\n" + traceback.format_exc())
 
-    # 2) kyst
+    # 3) kyst
+    feats, wind = [], []
     try:
         countries = load_countries(cache)
         lines = load_coastlines(cache, a.coast_file)
         segs = build_segments(lines, countries)
-        wind = build_windpoints(segs)
+        if water is not None and direction_check(segs, water) > 5:
+            errors.append("retning")
 
         zones_utm = [transform(TO_UTM.transform, shape(f["geometry"])) for f in fred_feats]
         tree = shapely.STRtree(zones_utm) if zones_utm else None
-
         vand_utm = [transform(TO_UTM.transform, shape(f["geometry"])) for f in vand_feats]
         vtree = shapely.STRtree(vand_utm) if vand_utm else None
-
-        feats = []
-        for i, s in enumerate(segs):
-            g = s["geom"]
-            props = {"i": i, "b": s["b"], "g": s["g"]}
+        for s in segs:
             if tree is not None:
-                hits = tree.query(g, predicate="intersects")
+                hits = tree.query(s["geom"], predicate="dwithin", distance=75)
                 if len(hits):
-                    props["f"] = sorted(int(h) for h in hits)
+                    s["f"] = sorted(int(h) for h in hits)
             if vtree is not None:
-                m = s["mid"]
-                probe = m
-                if s["b"] >= 0:
-                    ang = math.radians(s["b"])
-                    probe = Point(m.x + 200 * math.sin(ang), m.y + 200 * math.cos(ang))
-                near = vtree.query_nearest(probe, max_distance=3000)
+                near = vtree.query_nearest(Point(*_offset(s, 200)), max_distance=3000)
                 if len(near):
-                    props["w"] = int(near[0])
-            gw = transform(TO_WGS.transform, g.simplify(8))
+                    s["w"] = int(near[0])
+        wind = build_windpoints(segs, water)
+        if not a.skip_remote:
+            place_quality(segs, cache)
+            meta["sources"]["dybde"] = "EMODnet Bathymetry DTM 2024; bundtype: EMODnet Seabed Habitats EUSeaMap"
+
+        for i, s in enumerate(segs):
+            props = {"i": i, "b": s["b"], "g": s["g"]}
+            for k in ("f", "w", "d1", "d2", "s"):
+                if k in s:
+                    props[k] = s[k]
+            gw = transform(TO_WGS.transform, s["geom"].simplify(8))
             feats.append({"type": "Feature", "properties": props,
                           "geometry": {"type": "LineString", "coordinates": rnd(gw.coords)}})
-        write_json(out / "coast.geojson", {"type": "FeatureCollection", "features": feats})
-        write_json(out / "windpoints.json", wind)
-        meta["counts"].update({"segments": len(feats), "windpoints": len(wind),
-                               "segments_in_fredning": sum(1 for f in feats if "f" in f["properties"])})
+        meta["counts"].update({
+            "segments": len(feats), "windpoints": len(wind),
+            "segments_in_fredning": sum(1 for f in feats if "f" in f["properties"]),
+            "segments_with_depth": sum(1 for f in feats if "d2" in f["properties"]),
+            "segments_with_substrate": sum(1 for f in feats if "s" in f["properties"])})
         meta["sources"]["kyst"] = "OpenStreetMap coastline (osmdata.openstreetmap.de), ODbL"
     except Exception:  # noqa: BLE001
-        ok = False
+        errors.append("kyst")
         log("FEJL kyst:\n" + traceback.format_exc())
-
-    if vand_feats:
-        write_json(out / "vand.geojson", {"type": "FeatureCollection", "features": vand_feats})
     meta["counts"]["vand"] = len(vand_feats)
-    if fred_feats or not (out / "fredning.geojson").exists():
-        write_json(out / "fredning.geojson", {"type": "FeatureCollection", "features": fred_feats})
     meta["counts"]["fredning"] = len(fred_feats)
-    write_json(out / "meta.json", meta)
-    write_json(out / "_build_log.json", {"ok": ok, "log": LOG, "discovery": DISCOVERY})
-    return 0 if ok else 1
+
+    # 4) sanity: må ikke falde markant i forhold til sidste build
+    if not a.skip_remote:
+        for key, frac in (("segments", 0.95), ("fredning", 0.8), ("vand", 0.9)):
+            if prev.get(key) and meta["counts"].get(key, 0) < frac * prev[key]:
+                errors.append(f"{key} faldt fra {prev[key]} til {meta['counts'].get(key, 0)}")
+
+    # 5) skriv alt eller intet
+    if errors:
+        log(f"Build afbrudt – data er IKKE opdateret. Fejl: {errors}")
+        write_json(out / "_build_log.json", {"ok": False, "errors": errors, "log": LOG, "discovery": DISCOVERY})
+        return 1
+    files = {"coast.geojson": {"type": "FeatureCollection", "features": feats},
+             "windpoints.json": wind, "meta.json": meta}
+    if not a.skip_remote:
+        files["fredning.geojson"] = {"type": "FeatureCollection", "features": fred_feats}
+        files["vand.geojson"] = {"type": "FeatureCollection", "features": vand_feats}
+    tmp = out / ".tmp_build"
+    tmp.mkdir(exist_ok=True)
+    for name, obj in files.items():
+        write_json(tmp / name, obj)
+    for name in files:
+        (tmp / name).replace(out / name)
+    tmp.rmdir()
+    write_json(out / "_build_log.json", {"ok": True, "log": LOG, "discovery": DISCOVERY})
+    return 0
 
 
 if __name__ == "__main__":

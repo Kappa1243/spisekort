@@ -1,6 +1,7 @@
-geopandas>=1.0
-pyogrio>=0.9
-shapely>=2.0
-pyproj>=3.6
-requests>=2.31
-numpy>=1.26
+geopandas>=1.0,<2
+pyogrio>=0.9,<1
+shapely>=2.0,<3
+pyproj>=3.6,<4
+requests>=2.31,<3
+numpy>=1.26,<3
+netCDF4>=1.6,<2
