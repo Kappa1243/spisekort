@@ -707,7 +707,8 @@ def build_vand():
         pr["color"] = STATUS_COLORS[pr["sm"]]
         out.append({"type": "Feature", "properties": pr, "geometry": gj})
     DISCOVERY["vp3_sm_counts"] = {c: sum(1 for f in out if f["properties"]["sm"] == c) for c in range(6)}
-    water_utm = shapely.union_all([transform(TO_UTM.transform, g) for g in water]).buffer(0)
+    geoms = shapely.make_valid(np.array([transform(TO_UTM.transform, g) for g in water], dtype=object))
+    water_utm = shapely.union_all(shapely.buffer(geoms, 0))
     return out, water_utm
 
 
@@ -793,10 +794,15 @@ def load_substrate():
         except Exception as e:  # noqa: BLE001
             DISCOVERY.setdefault("substrate_errors", []).append(f"{ep}: {e}"[:200])
             continue
-        cands = [n for n, t in names if re.search(r"subs", n, re.I)]
-        DISCOVERY.setdefault("substrate_layers", {})[ep] = cands[:30]
-        # foretræk nyeste "full"/ikke-gruppe-lag
-        cands.sort(key=lambda n: (("2023" not in n), ("group" in n), len(n)))
+        allsubs = [n for n, t in names if re.search(r"subs", n, re.I)]
+        DISCOVERY.setdefault("substrate_layers", {})[ep] = allsubs[:80]
+        # Europæiske EUSeaMap-substratlag (ikke caribiske/kaspiske), nyeste år og fuld opløsning først.
+        cands = [n for n in allsubs if re.search(r"(^|:)eusm\d{4}_subs", n, re.I)]
+
+        def rank(n):
+            year = int((re.search(r"eusm(\d{4})", n) or [0, 0])[1])
+            return (-year, 0 if n.endswith("_full") else 1, len(n))
+        cands.sort(key=rank)
         for n in cands:
             try:
                 r = get(ep, params={"service": "WFS", "version": "2.0.0", "request": "GetFeature",
