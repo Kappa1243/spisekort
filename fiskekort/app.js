@@ -22,10 +22,11 @@ const DIR_PRESETS = {
   off: { on: 0.4, side: 0.8, off: 1 },
 };
 const PALETTES = {
-  std: { 3: "#16a34a", 2: "#eab308", 1: "#dc2626", 9: "#6d28d9", 0: "#94a3b8" },
-  cb: { 3: "#0072B2", 2: "#E69F00", 1: "#D55E00", 9: "#000000", 0: "#999999" }, // Okabe-Ito
+  std: { 3: "#4ADE9B", 2: "#FACC4D", 1: "#FF6B6B", 9: "#B18CFF", 0: "#4B5D73" },
+  cb: { 3: "#56B4E9", 2: "#E69F00", 1: "#D55E00", 9: "#CC79A7", 0: "#5B6B7E" }, // Okabe-Ito, lyse varianter til mørk baggrund
 };
-const LABELS = { 3: "God", 2: "Middel", 1: "Dårlig", 9: "Fiskeri forbudt", 0: "Ingen vind-data" };
+const REG_COLOR = "#F2A65A";
+const LABELS = { 3: "God", 2: "Middel", 1: "Dårlig", 9: "Forbudt", 0: "Ukendt" };
 const DK_BOUNDS = [[8.0, 54.5], [15.2, 57.8]];
 const PAST_DAYS = 2, FORECAST_DAYS = 12; // i alt 14 døgn = ét Open-Meteo-kald pr. sted
 const BATCH = 80;
@@ -472,82 +473,104 @@ async function loadWeather() {
   store.set(CACHE_KEY, { at: Date.now(), sig, ts, sp: pack(sp, 10), dr: pack(dr, 1), gu: pack(gu, 10), cc: pack(cc, 1), sst: sst ? pack(sst, 10) : null, missing, sstError });
 }
 
-// ------------------------------------------------------------------ dage
-function days() {
+// ------------------------------------------------------------------ dage og tid
+function futureIdx() {
   const today = todayStr();
   const out = [];
-  for (const k of state.keys) { const d = k.slice(0, 10); if (d >= today && out[out.length - 1] !== d) out.push(d); }
-  return out.length ? out : [today];
+  state.keys.forEach((k, i) => { if (k.slice(0, 10) >= today) out.push(i); });
+  return out;
 }
-function dayLabel(d, i) {
+function dayLabel(d, long = false) {
   if (d === todayStr()) return "I dag";
   const dt = new Date(d + "T12:00:00");
   const tomorrow = new Date(Date.parse(todayStr() + "T12:00:00") + 86400e3);
   if (dt.toDateString() === tomorrow.toDateString()) return "I morgen";
-  return dt.toLocaleDateString("da-DK", { weekday: "short", day: "numeric", month: i > 6 ? "short" : undefined }).replace(".", "");
+  const s = dt.toLocaleDateString("da-DK", long ? { weekday: "long", day: "numeric", month: "short" } : { weekday: "short", day: "numeric" }).replace(/\./g, "");
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
-function renderDays() {
-  const el = $("days");
-  const ds = days();
-  if (!ds.includes(state.day)) state.day = ds[0];
-  el.innerHTML = "";
-  ds.forEach((d, i) => {
-    const b = document.createElement("button");
-    b.textContent = dayLabel(d, i);
-    b.setAttribute("aria-pressed", d === state.day);
-    b.onclick = () => { state.day = d; renderDays(); update(); };
-    el.appendChild(b);
-  });
-  const sel = el.querySelector("[aria-pressed=true]");
-  if (sel) sel.scrollIntoView({ block: "nearest", inline: "center" });
+function setTime(day, hour) {
+  state.day = day; state.hour = hour;
+  update();
 }
 
 // ------------------------------------------------------------------ kort
-let map, popup, popupFeature = null;
+let map, sel = null; // sel = valgt kyststrækning (feature)
 
+const SEA = "#0B1C2E", LAND = "#16212E";
 const FALLBACK_STYLE = {
   version: 8,
-  sources: { carto: { type: "raster", tiles: ["https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png", "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"], tileSize: 256, attribution: "© OpenStreetMap © CARTO" } },
-  layers: [{ id: "carto", type: "raster", source: "carto" }],
+  sources: { carto: { type: "raster", tiles: ["https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png", "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"], tileSize: 256, attribution: "© OpenStreetMap © CARTO" } },
+  layers: [{ id: "bg", type: "background", paint: { "background-color": SEA } }, { id: "carto", type: "raster", source: "carto", paint: { "raster-opacity": 0.85 } }],
 };
 
-function initMap() {
+// Henter OpenFreeMaps lyse "positron"-stil og farver den om til nattefarver.
+function darkify(st) {
+  for (const l of st.layers || []) {
+    const id = l.id.toLowerCase();
+    l.paint = l.paint || {};
+    const p = l.paint;
+    if (l.type === "background") p["background-color"] = LAND;
+    else if (l.type === "fill") {
+      delete p["fill-pattern"]; delete p["fill-outline-color"];
+      if (/water|ocean|sea|bay|lake|river/.test(id)) { p["fill-color"] = SEA; p["fill-opacity"] = 1; }
+      else if (/building/.test(id)) { p["fill-color"] = "#1D2938"; p["fill-opacity"] = 0.7; }
+      else { p["fill-color"] = "#1A2634"; p["fill-opacity"] = 0.6; }
+    } else if (l.type === "line") {
+      delete p["line-pattern"];
+      if (/water|river|stream|canal|ditch/.test(id)) p["line-color"] = "#14324D";
+      else if (/boundary|admin/.test(id)) p["line-color"] = "#34465C";
+      else { p["line-color"] = "#243245"; p["line-opacity"] = 0.9; }
+    } else if (l.type === "symbol") {
+      if (l.layout && l.layout["text-field"]) {
+        p["text-color"] = /water|ocean|sea|marine|bay|lake/.test(id) ? "#4F7AA0" : "#8597AD";
+        p["text-halo-color"] = SEA; p["text-halo-width"] = 1.2; p["text-halo-blur"] = 0.5;
+      }
+      p["icon-opacity"] = 0.45;
+    } else if (l.type === "fill-extrusion") {
+      l.layout = Object.assign({}, l.layout, { visibility: "none" });
+    }
+  }
+  return st;
+}
+async function baseStyle() {
+  try {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 7000);
+    const r = await fetch("https://tiles.openfreemap.org/styles/positron", { signal: ctl.signal });
+    clearTimeout(timer);
+    if (!r.ok) throw new Error(r.status);
+    return darkify(await r.json());
+  } catch {
+    return FALLBACK_STYLE;
+  }
+}
+
+async function initMap() {
   map = new maplibregl.Map({
     container: "map",
-    style: "https://tiles.openfreemap.org/styles/positron",
+    style: await baseStyle(),
     bounds: DK_BOUNDS,
-    fitBoundsOptions: { padding: { top: 70, bottom: 210, left: 20, right: 20 } },
+    fitBoundsOptions: { padding: { top: 70, bottom: dockHeight() + 20, left: 20, right: 20 } },
     attributionControl: { compact: true },
     maxZoom: 17,
   });
   if (window.innerWidth > 560) map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
   map.addControl(new maplibregl.GeolocateControl({ positionOptions: { enableHighAccuracy: true }, trackUserLocation: true }), "top-right");
-  let styled = false;
-  const fallback = setTimeout(() => { if (!styled) map.setStyle(FALLBACK_STYLE); }, 8000);
-  map.on("style.load", () => { styled = true; clearTimeout(fallback); addLayers(); lastSig = ""; update(); });
-  map.on("error", (e) => { if (!styled && e && e.error && /style/i.test(String(e.error.message || ""))) { styled = true; map.setStyle(FALLBACK_STYLE); } });
-  map.on("moveend", renderSun);
+  map.on("style.load", () => { addLayers(); lastSig = ""; update(); });
+  map.on("moveend", () => { clearTimeout(areaTimer); areaTimer = setTimeout(() => { areaSig = ""; renderTimeline(); }, 250); });
 
   const hit = (e) => {
-    const r = 10;
-    const fs = map.queryRenderedFeatures([[e.point.x - r, e.point.y - r], [e.point.x + r, e.point.y + r]], { layers: ["coast"] });
-    return fs[0];
+    const r = 12;
+    return map.queryRenderedFeatures([[e.point.x - r, e.point.y - r], [e.point.x + r, e.point.y + r]], { layers: ["coast"] })[0];
   };
   map.on("click", (e) => {
     const f = hit(e);
-    if (!f) { if (popup) popup.remove(); return; }
-    const panel = document.querySelector(".bottom").getBoundingClientRect();
-    const target = panel.top - 30;
-    if (Math.abs(e.point.y - target) > 40) map.panBy([0, e.point.y - target], { duration: 300 });
-    openPopup(f, e.lngLat);
+    if (f) select(state.coast.features[f.properties.i]);
+    else select(null);
   });
   map.on("mousemove", (e) => { map.getCanvas().style.cursor = hit(e) ? "pointer" : ""; });
 }
 
-function firstSymbolId() {
-  const l = map.getStyle().layers.find((x) => x.type === "symbol");
-  return l && l.id;
-}
 function coastColorExpr() {
   const c = colors();
   return ["match", ["coalesce", ["feature-state", "s"], 0], 3, c[3], 2, c[2], 1, c[1], 9, c[9], c[0]];
@@ -555,33 +578,41 @@ function coastColorExpr() {
 
 function addLayers() {
   if (map.getSource("coast")) return;
-  const below = firstSymbolId();
+  const firstSymbol = (map.getStyle().layers.find((x) => x.type === "symbol") || {}).id;
   map.addSource("sat", { type: "raster", tileSize: 256, maxzoom: 18, attribution: "Luftfoto © Esri, Maxar, Earthstar Geographics",
     tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"] });
-  map.addLayer({ id: "sat", type: "raster", source: "sat", layout: { visibility: state.layers.sat ? "visible" : "none" } }, below);
+  map.addLayer({ id: "sat", type: "raster", source: "sat", paint: { "raster-brightness-max": 0.75, "raster-saturation": -0.2 },
+    layout: { visibility: state.layers.sat ? "visible" : "none" } }, firstSymbol);
 
   if (state.vand) {
     map.addSource("vand", { type: "geojson", data: state.vand, promoteId: "id" });
     map.addLayer({ id: "vand", type: "fill", source: "vand", layout: { visibility: state.layers.vand ? "visible" : "none" },
-      paint: { "fill-color": ["coalesce", ["get", "color"], "#94a3b8"], "fill-opacity": 0.28 } }, below);
+      paint: { "fill-color": ["coalesce", ["get", "color"], "#94a3b8"], "fill-opacity": 0.22 } }, firstSymbol);
   }
   if (state.fred) {
     const vis = { visibility: state.layers.fred ? "visible" : "none" };
     map.addSource("fred", { type: "geojson", data: state.fred, promoteId: "id" });
     map.addLayer({ id: "fred-fill", type: "fill", source: "fred", filter: ["!=", ["get", "t"], "omr"], layout: vis,
-      paint: { "fill-color": ["case", ["boolean", ["feature-state", "active"], false], "#6d28d9", "#a78bfa"],
-        "fill-opacity": ["case", ["boolean", ["feature-state", "active"], false], 0.28, 0.1] } });
-    map.addLayer({ id: "fred-omr", type: "line", source: "fred", filter: ["==", ["get", "t"], "omr"], layout: vis,
-      paint: { "line-color": "#ea580c", "line-width": 1.5, "line-opacity": 0.8, "line-dasharray": [3, 2] } });
+      paint: { "fill-color": "#B18CFF", "fill-opacity": ["case", ["boolean", ["feature-state", "active"], false], 0.2, 0.05] } });
     map.addLayer({ id: "fred-line", type: "line", source: "fred", filter: ["!=", ["get", "t"], "omr"], layout: vis,
-      paint: { "line-color": "#6d28d9", "line-width": 1, "line-opacity": 0.6,
-        "line-dasharray": ["case", ["boolean", ["feature-state", "active"], false], ["literal", [1, 0]], ["literal", [2, 2]]] } });
+      paint: { "line-color": "#B18CFF", "line-width": 1, "line-opacity": ["case", ["boolean", ["feature-state", "active"], false], 0.7, 0.3] } });
+    map.addLayer({ id: "fred-omr", type: "line", source: "fred", filter: ["==", ["get", "t"], "omr"], layout: vis,
+      paint: { "line-color": REG_COLOR, "line-width": 1.2, "line-opacity": 0.6, "line-dasharray": [3, 2] } });
   }
   map.addSource("coast", { type: "geojson", data: state.coast, promoteId: "i", tolerance: 0.2 });
-  const width = ["interpolate", ["linear"], ["zoom"], 6, 1.6, 9, 3, 12, 5, 15, 8];
+  // Zoom må kun stå øverst i et interpolate-udtryk, så hver bredde bygges som sit eget udtryk.
+  const STOPS = [[6, 1.8], [9, 3.2], [12, 5.5], [15, 9]];
+  const W = (fn) => ["interpolate", ["linear"], ["zoom"], ...STOPS.flatMap(([z, w]) => [z, fn(w)])];
+  const width = W((w) => w);
+  const reg = ["boolean", ["feature-state", "reg"], false];
+  const on = ["boolean", ["feature-state", "sel"], false];
+  // Glød under kysten – "lysende kyst" mod det mørke hav.
+  map.addLayer({ id: "coast-glow", type: "line", source: "coast", layout: { "line-cap": "round", "line-join": "round" },
+    paint: { "line-color": coastColorExpr(), "line-width": W((w) => w * 3), "line-blur": W((w) => w * 1.6), "line-opacity": 0.32 } });
+  map.addLayer({ id: "coast-sel", type: "line", source: "coast", layout: { "line-cap": "round", "line-join": "round" },
+    paint: { "line-color": "#E8EEF5", "line-width": W((w) => w + 7), "line-opacity": ["case", on, 1, 0] } });
   map.addLayer({ id: "coast-casing", type: "line", source: "coast", layout: { "line-cap": "round", "line-join": "round" },
-    paint: { "line-color": ["case", ["boolean", ["feature-state", "reg"], false], "#ea580c", "#ffffff"],
-      "line-width": ["+", width, ["case", ["boolean", ["feature-state", "reg"], false], 4, 2]], "line-opacity": 0.9 } });
+    paint: { "line-color": ["case", reg, REG_COLOR, SEA], "line-width": W((w) => ["case", reg, w + 4, w + 2]), "line-opacity": 0.95 } });
   map.addLayer({ id: "coast", type: "line", source: "coast", layout: { "line-cap": "round", "line-join": "round" },
     paint: { "line-width": width, "line-color": coastColorExpr() } });
 }
@@ -591,151 +622,297 @@ function applyPalette() {
   const c = colors();
   const root = document.documentElement.style;
   root.setProperty("--good", c[3]); root.setProperty("--ok", c[2]); root.setProperty("--bad", c[1]); root.setProperty("--ban", c[9]); root.setProperty("--none", c[0]);
-  if (map && map.getLayer("coast")) map.setPaintProperty("coast", "line-color", coastColorExpr());
-  if (popupFeature && popup && popup.isOpen()) popup.setHTML(popupHTML(popupFeature));
+  if (map && map.getLayer("coast")) { map.setPaintProperty("coast", "line-color", coastColorExpr()); map.setPaintProperty("coast-glow", "line-color", coastColorExpr()); }
+  renderCard();
+}
+function dockHeight() { const d = document.querySelector(".dock-inner"); return d ? d.getBoundingClientRect().height : 170; }
+function syncDockHeight() { document.documentElement.style.setProperty("--dock-h", `${Math.round(dockHeight()) + 8}px`); }
+
+// ------------------------------------------------------------------ valg af strækning
+function select(f) {
+  if (sel && map.getSource("coast")) map.setFeatureState({ source: "coast", id: sel.properties.i }, { sel: false });
+  sel = f;
+  if (sel) {
+    map.setFeatureState({ source: "coast", id: sel.properties.i }, { sel: true });
+    renderCard();
+    const cs = sel.geometry.coordinates;
+    const mid = cs[Math.floor(cs.length / 2)];
+    requestAnimationFrame(() => {
+      syncDockHeight();
+      const p = map.project(mid);
+      const bottom = window.innerHeight - dockHeight() - 24;
+      if (p.y > bottom || p.y < 80) map.easeTo({ center: mid, padding: { top: 70, bottom: dockHeight() + 20, left: 0, right: 0 }, duration: 400 });
+    });
+  } else {
+    renderCard();
+  }
+  areaSig = "";
+  renderTimeline();
+  renderCaption(currentT());
 }
 
 // ------------------------------------------------------------------ opdatering
 let lastSig = "";
 function update() {
   const t = currentT();
-  $("hour").value = state.hour;
-  $("clock").textContent = `${pad(state.hour)}:00`;
-  renderBanner(t);
-  renderStatus(t);
-  renderSun();
-  if (!map || !map.getSource("coast") || !state.coast) return;
+  renderWhen(t);
+  renderTimeline();
+  renderCaption(t);
+  if (!map || !map.getSource("coast") || !state.coast) { renderCard(); return; }
   const sig = [t, state.species, JSON.stringify(state.custom), state.day, !!state.sp].join("|");
-  if (sig === lastSig) return;
-  lastSig = sig;
-  const dateStr = dateOfT(t);
-  for (const f of state.coast.features) {
-    const r = evaluate(f, t);
-    map.setFeatureState({ source: "coast", id: f.properties.i }, { s: r.cls, reg: !!r.reg && !r.banned });
+  if (sig !== lastSig) {
+    lastSig = sig;
+    const dateStr = dateOfT(t);
+    for (const f of state.coast.features) {
+      const r = evaluate(f, t);
+      map.setFeatureState({ source: "coast", id: f.properties.i }, { s: r.cls, reg: !!r.reg && !r.banned });
+    }
+    if (state.fred && map.getSource("fred")) {
+      for (const f of state.fred.features) map.setFeatureState({ source: "fred", id: f.properties.id }, { active: zoneActive(f.properties, dateStr) });
+    }
   }
-  if (state.fred && map.getSource("fred")) {
-    for (const f of state.fred.features) map.setFeatureState({ source: "fred", id: f.properties.id }, { active: zoneActive(f.properties, dateStr) });
-  }
-  if (popupFeature && popup && popup.isOpen()) popup.setHTML(popupHTML(popupFeature));
+  renderCard();
 }
 
-let sunSig = "";
-function renderSun() {
-  const el = $("sun");
-  if (!el) return;
-  const c = map ? map.getCenter() : { lat: 56, lng: 10.5 };
-  const sig = `${state.day}|${c.lat.toFixed(1)}|${c.lng.toFixed(1)}`;
-  if (sig === sunSig) return;
-  sunSig = sig;
-  const { rise, set } = sunTimes(state.day || todayStr(), c.lat, c.lng);
-  el.textContent = rise && set ? `Sol op ${hhmm(rise)} · ned ${hhmm(set)}` : "";
+function renderWhen(t) {
+  const d = state.day || todayStr();
+  $("when").textContent = `${dayLabel(d)}, ${pad(state.hour)}:00`;
+  $("now").hidden = d === todayStr() && state.hour === nowHour();
 }
 
-function renderStatus(t) {
-  const el = $("status");
-  el.classList.remove("err");
-  if (state.fredError) { el.classList.add("err"); el.textContent = `Fredningsbælterne kunne ikke hentes – forbudte områder vises IKKE (${state.fredError}).`; return; }
+function renderCaption(t) {
+  const el = $("caption");
+  const c = colors();
+  if (state.fredError) { el.innerHTML = `<span class="err">Fredningsbælterne kunne ikke hentes. Forbudte områder vises ikke.</span>`; return; }
   if (state.windError) {
-    el.classList.add("err");
-    el.innerHTML = `Vind kunne ikke hentes (${esc(state.windError)}). <a href="#" id="retry">Prøv igen</a>`;
+    el.innerHTML = `<span class="err">Vinden kunne ikke hentes (${esc(state.windError)}).</span> <a href="#" id="retry">Prøv igen</a>`;
     const a = $("retry"); if (a) a.onclick = (e) => { e.preventDefault(); startWind(); };
     return;
   }
-  if (!state.sp) { el.textContent = "Henter vind og havtemperatur …"; return; }
-  if (t < 0) { el.textContent = "Ingen prognose for dette tidspunkt."; return; }
-  const parts = [`Vind hentet ${state.windAt.toLocaleTimeString("da-DK", { hour: "2-digit", minute: "2-digit" })}`];
-  if (state.missing) parts.push(`mangler for ${state.missing} af ${state.N} områder`);
-  if (state.sstError) parts.push("havtemperatur mangler");
-  parts.push(profile().name);
-  el.textContent = parts.join(" · ");
+  if (!state.sp) { el.textContent = "Henter vind og havtemperatur"; return; }
+  const what = sel ? "Søjlerne viser den valgte strækning time for time." : "Søjlerne viser, hvor meget af kysten i kortudsnittet der er god.";
+  let html = `<span>${what}</span>`;
+  if (state.missing) html += `<span class="err">Vind mangler for ${state.missing} af ${state.N} områder.</span>`;
+  if (!sel) {
+    html += `<span class="key"><i style="background:${c[3]}"></i>God</span><span class="key"><i style="background:${c[2]}"></i>Middel</span>` +
+      `<span class="key"><i style="background:${c[1]}"></i>Dårlig</span><span class="key"><i style="background:${c[9]}"></i>Forbudt</span><span class="key"><i class="ring"></i>Særlige regler</span>`;
+  }
+  el.innerHTML = html;
 }
 
-function renderBanner(t) {
-  const el = $("banner");
-  const d = dateOfT(t);
-  const m = +d.slice(5, 7), day = +d.slice(8, 10);
-  let msg = "";
-  if (state.species === "havorred" && ((m === 11 && day >= 16) || m === 12 || (m === 1 && day <= 15)))
-    msg = "Farvede (gydemodne) havørreder er fredede i saltvand 16/11–15/1 og skal genudsættes. Blanke fisk må tages.";
-  else if (state.species === "fladfisk")
-    msg = "Torsk: hjemtagning er forbudt eller begrænset i flere farvande (bl.a. Bælthavet og Østersøen). Tjek de aktuelle regler.";
-  else if (state.species === "hornfisk" && !(m >= 4 && m <= 6))
-    msg = "Hornfisk står primært under kysten i april–juni – resten af året er chancen lille.";
-  el.textContent = msg;
-  el.classList.toggle("show", !!msg);
+// ------------------------------------------------------------------ tidslinje
+let areaSig = "", areaSeries = null, areaTimer = null, tlSig = "";
+function sampleVisible() {
+  if (!map || !state.coast) return [];
+  const b = map.getBounds();
+  const vis = state.coast.features.filter((f) => { const c = f.geometry.coordinates[0]; return b.contains(c); });
+  const step = Math.max(1, Math.floor(vis.length / 220));
+  return vis.filter((_, i) => i % step === 0);
+}
+function series(idx) {
+  if (!state.sp) return idx.map(() => ({ v: 0, c: 0 }));
+  if (sel) {
+    return idx.map((t) => {
+      const r = evaluate(sel, t);
+      if (r.banned) return { v: 0.15, c: 9 };
+      return { v: r.score == null ? 0 : Math.max(0.06, r.cls === 3 ? Math.max(r.score, 0.7) : Math.min(r.score, r.cls === 2 ? 0.69 : 0.44)), c: r.cls };
+    });
+  }
+  const sig = [state.species, JSON.stringify(state.custom), map ? map.getBounds().toString() : "", state.T].join("|");
+  if (sig === areaSig && areaSeries && areaSeries.length === idx.length) return areaSeries;
+  const sample = sampleVisible();
+  areaSeries = idx.map((t) => {
+    let g = 0, y = 0, n = 0, ban = 0;
+    for (const f of sample) {
+      const r = evaluate(f, t);
+      if (r.banned) { ban++; continue; }
+      if (!r.cls) continue;
+      n++;
+      if (r.cls === 3) g++; else if (r.cls === 2) y++;
+    }
+    if (!n) return { v: ban ? 0.15 : 0, c: ban ? 9 : 0 };
+    const v = (g + 0.5 * y) / n;
+    return { v: Math.max(0.06, v), c: v >= 0.55 ? 3 : v >= 0.3 ? 2 : 1 };
+  });
+  areaSig = sig;
+  return areaSeries;
 }
 
-// ------------------------------------------------------------------ popup
+function renderTimeline() {
+  const el = $("tl");
+  const idx = futureIdx();
+  if (!idx.length) { el.innerHTML = ""; return; }
+  // Byg søjlerne én gang pr. datasæt
+  const sig = `${state.T}|${idx[0]}|${idx.length}`;
+  if (sig !== tlSig) {
+    tlSig = sig;
+    let html = "", lastDay = "";
+    idx.forEach((t, j) => {
+      const d = state.keys[t].slice(0, 10);
+      if (d !== lastDay) {
+        if (lastDay) html += `</div><div class="dl" data-d="${lastDay}">${esc(dayLabel(lastDay))}</div></div>`;
+        html += `<div class="tday"><div class="bars">`;
+        lastDay = d;
+      }
+      html += `<i data-j="${j}"></i>`;
+    });
+    html += `</div><div class="dl" data-d="${lastDay}">${esc(dayLabel(lastDay))}</div></div>`;
+    el.innerHTML = html;
+    el.setAttribute("aria-valuemax", String(idx.length - 1));
+  }
+  const vals = series(idx);
+  const bars = el.querySelectorAll(".bars i");
+  const cur = currentT();
+  const nowKey = dkKey(Date.now()).slice(0, 13);
+  let curEl = null;
+  bars.forEach((b, j) => {
+    const t = idx[j];
+    const { v, c } = vals[j] || { v: 0, c: 0 };
+    b.style.height = `${Math.round(6 + v * 40)}px`;
+    b.className = `c${c}${state.keys[t] < nowKey ? " past" : ""}${t === cur ? " on" : ""}`;
+    if (t === cur) curEl = b;
+  });
+  el.querySelectorAll(".dl").forEach((d) => d.classList.toggle("sel", d.dataset.d === state.day));
+  const j = idx.indexOf(cur);
+  el.setAttribute("aria-valuenow", String(Math.max(0, j)));
+  el.setAttribute("aria-valuetext", $("when").textContent);
+  if (curEl && !scrubbing) {
+    const r = curEl.getBoundingClientRect(), box = el.getBoundingClientRect();
+    if (r.left < box.left + 20 || r.right > box.right - 20) el.scrollLeft += r.left - box.left - box.width / 2;
+  }
+}
+
+let scrubbing = false;
+function bindTimeline() {
+  const el = $("tl");
+  const pick = (x, y) => {
+    const target = document.elementFromPoint(x, y);
+    let b = target && target.closest ? target.closest(".bars i") : null;
+    if (!b) {
+      // mellem søjlerne: tag nærmeste
+      let best = null, bd = 1e9;
+      el.querySelectorAll(".bars i").forEach((i) => { const r = i.getBoundingClientRect(); const d = Math.abs(r.left + r.width / 2 - x); if (d < bd) { bd = d; best = i; } });
+      b = bd < 12 ? best : null;
+    }
+    if (!b) return;
+    const t = futureIdx()[+b.dataset.j];
+    if (t == null) return;
+    const k = state.keys[t];
+    if (k.slice(0, 10) !== state.day || +k.slice(11, 13) !== state.hour) setTime(k.slice(0, 10), +k.slice(11, 13));
+  };
+  let startX = 0, moved = false;
+  el.addEventListener("pointerdown", (e) => { scrubbing = true; startX = e.clientX; moved = false; if (e.pointerType === "mouse") pick(e.clientX, e.clientY); });
+  el.addEventListener("pointermove", (e) => {
+    if (!scrubbing) return;
+    if (Math.abs(e.clientX - startX) > 6) moved = true;
+    if (e.pointerType === "mouse") pick(e.clientX, e.clientY);
+  });
+  const end = (e) => { if (scrubbing && e.pointerType !== "mouse" && !moved) pick(e.clientX, e.clientY); scrubbing = false; };
+  el.addEventListener("pointerup", end);
+  el.addEventListener("pointercancel", () => { scrubbing = false; });
+  el.addEventListener("keydown", (e) => {
+    const idx = futureIdx();
+    let j = idx.indexOf(currentT());
+    if (e.key === "ArrowRight") j++; else if (e.key === "ArrowLeft") j--;
+    else if (e.key === "PageDown") j += 24; else if (e.key === "PageUp") j -= 24; else return;
+    e.preventDefault();
+    j = Math.max(0, Math.min(idx.length - 1, j));
+    const k = state.keys[idx[j]];
+    setTime(k.slice(0, 10), +k.slice(11, 13));
+  });
+}
+
+// ------------------------------------------------------------------ svarkort
 function pct(f) { const p = Math.round((f - 1) * 100); return `${p > 0 ? "+" : "−"}${Math.abs(p)} %`; }
-function popupHTML(f) {
+function windWord(v) { return v < 1.5 ? "Næsten vindstille" : v < 4 ? "Svag" : v < 7 ? "Let" : v < 10 ? "Frisk" : v < 14 ? "Hård" : "Stormende"; }
+
+function speciesReminder(dateStr) {
+  const m = +dateStr.slice(5, 7), day = +dateStr.slice(8, 10);
+  if (state.species === "havorred" && ((m === 11 && day >= 16) || m === 12 || (m === 1 && day <= 15)))
+    return "Husk: farvede havørreder er fredede i saltvand fra 16. november til 15. januar. Blanke fisk må tages.";
+  if (state.species === "fladfisk")
+    return "Torsk må ikke hjemtages eller er begrænset i flere farvande, bl.a. Bælthavet og Østersøen. Tjek de aktuelle regler.";
+  return "";
+}
+
+function renderCard() {
+  const el = $("card");
+  if (!sel) { el.hidden = true; el.innerHTML = ""; syncDockHeight(); return; }
   const t = currentT();
-  const r = evaluate(f, t);
-  const pr = f.properties;
+  const r = evaluate(sel, t);
+  const pr = sel.properties;
   const c = colors();
-  const rows = [];
-  if (r.v != null) {
-    const rot = Number.isFinite(r.dir) ? r.dir + 180 : 0; // pilen viser, hvor vinden blæser hen
-    rows.push(["Vind", `${fmt(r.v)} m/s fra ${compass(r.dir)} <span class="arrow" style="transform:rotate(${rot}deg)">↑</span>`]);
-    if (Number.isFinite(r.gust)) rows.push(["Vindstød", `${fmt(r.gust)} m/s`]);
-  }
-  rows.push(["Kysten vender mod", pr.b >= 0 ? `${compass(pr.b)} (${pr.b}°)` : "uklart (lille holm/mole)"]);
-  if (r.delta != null && r.v >= 1) rows.push(["Vindretning", windKind(r.delta)]);
-  if (Number.isFinite(r.sst)) rows.push(["Havtemperatur", `${fmt(r.sst)} °C`]);
-  if (r.light) rows.push(["Lys", LIGHT_LABEL[r.light]]);
-  if (pr.d1 != null || pr.d2 != null) rows.push(["Dybde (ca.)", `${pr.d1 != null ? fmt(pr.d1) + " m" : "–"} 150 m ude · ${pr.d2 != null ? fmt(pr.d2) + " m" : "–"} 400 m ude`]);
-  if (pr.s) rows.push(["Bund", SUBSTRATE[pr.s] || "–"]);
-  const cloud = state.cc && t >= 0 && pr.g != null ? state.cc[pr.g * state.T + t] : NaN;
-  if (Number.isFinite(cloud)) rows.push(["Skydække", `${Math.round(cloud)} %`]);
-  if (r.score != null && !r.banned) rows.push(["Score", `${fmt(r.score * 100, 0)} / 100`]);
-  if (r.vand) {
-    rows.push(["Vandkvalitet", `${esc(r.vand.label || "Ukendt")}${r.vand.n ? ` <span class="muted">· ${esc(r.vand.n)}</span>` : ""}`]);
-    rows.push(["Delelementer", `<span class="muted">Klorofyl ${VQ[r.vand.fy] || "–"} · Ålegræs ${VQ[r.vand.an] || "–"} · Bunddyr ${VQ[r.vand.bb] || "–"}</span>`]);
-  }
-  let extra = "";
-  if (r.factors.length && !r.banned) {
-    extra += `<div class="factors">${r.factors.map(([ff, label]) => `<span class="${ff >= 1 ? "up" : "down"}">${pct(ff)} ${esc(label)}</span>`).join("")}</div>`;
-  }
   const dateStr = dateOfT(t);
-  for (const z of r.zones) {
-    const active = zoneActive(z, dateStr);
-    let txt = `<b>${esc(zoneText(z))}${z.n ? ` – ${esc(z.n)}` : ""}</b>`;
-    if (z.note) txt += `. ${esc(z.note)}`;
-    else if (z.stang) txt += `. ${esc(z.r || "Stangfiskeri tilladt")}.`;
-    else if (z.t === "omr") txt += ": særlige regler for redskaber eller fangst. Tjek reglerne, før du fisker.";
-    else if (active) txt += z.t === "ukendt" ? ": perioden kunne ikke tolkes – regnet som forbudt." : ": alt fiskeri forbudt på denne dato.";
-    if (!z.note && !active && z.t === "per") txt += " (ikke aktivt på denne dato)";
-    if (z.v) txt += ` <span class="tag">Kontrolleret</span>`;
-    else if (z.uv) txt += ` <span class="tag">Ikke kontrolleret</span>`;
-    const url = safeUrl(z.url);
-    const src = z.kilde || z.lov;
-    if (src || url) txt += `<br><span style="opacity:.85">${esc(src || "")}${url ? ` · <a href="${esc(url)}" target="_blank" rel="noopener noreferrer" style="color:inherit">Bekendtgørelse</a>` : ""}</span>`;
-    extra += `<div class="${active ? "ban" : "note"}">${txt}</div>`;
-  }
-  for (const n of r.notes) extra += `<div class="note">${esc(n)}</div>`;
-  let lureHTML = "";
+  const when = `${dayLabel(dateStr, true).toLowerCase()} kl. ${pad(state.hour)}`;
+
+  // Én sætning om hvorfor
+  let why = "";
+  if (r.v != null) {
+    if (r.v < 1.5) why = "Næsten vindstille.";
+    else {
+      const kind = r.delta != null ? windKind(r.delta).toLowerCase() : "vind";
+      why = `${windWord(r.v)} ${kind}, ${fmt(r.v, 0)} m/s fra ${compass(r.dir)}.`;
+    }
+    if (Number.isFinite(r.gust) && r.gust > profile().gust) why += ` Vindstød op til ${fmt(r.gust, 0)} m/s.`;
+    if (Number.isFinite(r.sst)) why += ` Vandet er ${fmt(r.sst, 0)} °C.`;
+  } else if (state.sp) why = "Der mangler vinddata for dette sted.";
+  else why = "Henter vind …";
+
+  // Blink
+  let lure = "";
   if (r.v != null && !r.banned) {
     const pt = state.points[pr.g];
+    const cloud = state.cc && t >= 0 && pr.g != null ? state.cc[pr.g * state.T + t] : NaN;
     const light = r.light || (t >= 0 && pt ? lightPhase(sunElevation(state.ts[t] * 1000, pt[1], pt[0])) : "day");
     const vq = r.vand;
-    const lure = lureAdvice(state.species, { light, cloud, murky: r.murky != null && r.murky >= 8,
-      // Klorofyl-vurderingen bygger på sommermålinger, så "grønt vand" bruges kun maj–september.
-      green: !!(vq && (vq.fy === 1 || vq.fy === 2)) && [5, 6, 7, 8, 9].includes(+dateOfT(t).slice(5, 7)),
-      s: pr.s, sst: r.sst, d2: pr.d2 });
-    const sw = lure.sw.map((k) => `<i class="sw" title="${esc(k)}" style="background:${LURE_COLORS[k]}"></i>`).join("");
-    lureHTML = `<div class="lure"><div class="lt">${esc(lure.title)}</div><div class="lw">${sw}<b>${esc(lure.what)}</b></div><div class="muted">${esc(lure.why)}</div></div>`;
+    const a = lureAdvice(state.species, { light, cloud, murky: r.murky != null && r.murky >= 8,
+      green: !!(vq && (vq.fy === 1 || vq.fy === 2)) && [5, 6, 7, 8, 9].includes(+dateStr.slice(5, 7)), s: pr.s, sst: r.sst, d2: pr.d2 });
+    const sw = a.sw.map((k) => `<i title="${esc(k)}" style="background:${LURE_COLORS[k]}"></i>`).join("");
+    lure = `<div class="lure">${sw ? `<div class="swatches">${sw}</div>` : ""}<div><b>${esc(a.what)}</b><span>${esc(a.why)}</span></div></div>`;
   }
-  const when = t >= 0 ? new Date(state.ts[t] * 1000).toLocaleString("da-DK", { timeZone: "Europe/Copenhagen", weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
-  return `<div class="pop"><h3><span class="dot" style="background:${c[r.cls]}"></span>${LABELS[r.cls]} for ${esc(profile().name.toLowerCase())}</h3>
-    <div class="muted">${when}</div>${lureHTML}
-    <dl>${rows.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl>${extra}</div>`;
-}
-function openPopup(f, lngLat) {
-  popupFeature = state.coast.features[f.properties.i] || f;
-  if (!popup) popup = new maplibregl.Popup({ maxWidth: "330px", focusAfterOpen: false, anchor: "bottom", closeOnClick: false });
-  popup.setLngLat(lngLat).setHTML(popupHTML(popupFeature)).addTo(map);
+
+  // Hvad trækker op og ned
+  const chips = r.factors.length && !r.banned
+    ? `<div class="chips">${r.factors.map(([ff, label]) => `<span class="${ff >= 1 ? "up" : "down"}">${pct(ff)} ${esc(label)}</span>`).join("")}</div>` : "";
+
+  // Regler og forbehold
+  const rules = [];
+  for (const z of r.zones) {
+    const active = zoneActive(z, dateStr);
+    let txt = `<b>${esc(zoneText(z))}${z.n ? `, ${esc(z.n)}` : ""}.</b> `;
+    if (z.note) txt += esc(z.note);
+    else if (z.stang) txt += esc(z.r || "Stangfiskeri tilladt.");
+    else if (z.t === "omr") txt += "Særlige regler for redskaber eller fangst. Tjek reglerne, før du fisker.";
+    else if (active) txt += z.t === "ukendt" ? "Perioden kunne ikke tolkes og er regnet som forbudt." : "Alt fiskeri er forbudt på denne dato.";
+    else if (z.t === "per") txt += "Gælder ikke på denne dato.";
+    const url = safeUrl(z.url);
+    const src = [z.kilde || z.lov, z.v ? "kontrolleret" : z.uv ? "ikke kontrolleret" : ""].filter(Boolean).join(", ");
+    if (src || url) txt += `<small>${esc(src)}${url ? `${src ? " – " : ""}<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">bekendtgørelsen</a>` : ""}</small>`;
+    rules.push(`<div class="rule${active ? " ban" : ""}">${txt}</div>`);
+  }
+  for (const n of r.notes) rules.push(`<div class="rule info">${esc(n)}</div>`);
+  const rem = speciesReminder(dateStr);
+  if (rem) rules.push(`<div class="rule info">${esc(rem)}</div>`);
+
+  // Detaljer
+  const rows = [];
+  if (Number.isFinite(r.gust)) rows.push(["Vindstød", `${fmt(r.gust, 0)} m/s`]);
+  if (Number.isFinite(r.sst)) rows.push(["Havtemperatur", `${fmt(r.sst)} °C`]);
+  if (pr.d1 != null || pr.d2 != null) rows.push(["Dybde 150 / 400 m ude", `ca. ${pr.d1 != null ? fmt(pr.d1) : "–"} / ${pr.d2 != null ? fmt(pr.d2) : "–"} m`]);
+  if (pr.s) rows.push(["Bund", SUBSTRATE[pr.s] || "–"]);
+  if (r.vand) rows.push(["Vandkvalitet", `${esc(r.vand.label || "Ukendt")}${r.vand.n ? ` (${esc(r.vand.n)})` : ""}`]);
+  const details = rows.length ? `<details><summary>Detaljer</summary><dl>${rows.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl></details>` : "";
+
+  el.innerHTML = `<div class="card-head"><div><div class="verdict" style="color:${c[r.cls]}">${LABELS[r.cls]}</div>` +
+    `<div class="for">for ${esc(profile().name.toLowerCase())}, ${esc(when)}</div></div>` +
+    `<button class="close" id="closeCard" aria-label="Luk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>` +
+    `<p class="why">${esc(why)}</p>${lure}${chips}${rules.length ? `<div class="rules">${rules.join("")}</div>` : ""}${details}`;
+  el.hidden = false;
+  $("closeCard").onclick = () => select(null);
+  syncDockHeight();
 }
 
-// ------------------------------------------------------------------ UI
+// ------------------------------------------------------------------ indstillinger og arter
 function renderSpecies() {
   const el = $("species");
   el.innerHTML = "";
@@ -744,21 +921,20 @@ function renderSpecies() {
     b.innerHTML = `<span class="long">${esc(s.name)}</span><span class="short">${esc(s.short)}</span>`;
     b.title = s.name;
     b.setAttribute("aria-pressed", k === state.species);
-    b.onclick = () => { state.species = k; store.set("species", k); renderSpecies(); update(); if (k === "custom") openSheet(); };
+    b.onclick = () => { state.species = k; store.set("species", k); renderSpecies(); areaSig = ""; update(); if (k === "custom") openSheet(); };
     el.appendChild(b);
   }
   $("customBox").style.display = state.species === "custom" ? "" : "none";
 }
-
-function openSheet() { $("sheet").classList.add("open"); $("sheet").setAttribute("aria-hidden", "false"); $("customBox").style.display = state.species === "custom" ? "" : "none"; }
-function closeSheet() { $("sheet").classList.remove("open"); $("sheet").setAttribute("aria-hidden", "true"); }
+function openSheet() { $("sheet").classList.add("open"); $("sheet").setAttribute("aria-hidden", "false"); $("customBox").style.display = state.species === "custom" ? "" : "none"; $("closeSettings").focus(); }
+function closeSheet() { $("sheet").classList.remove("open"); $("sheet").setAttribute("aria-hidden", "true"); $("openSettings").focus(); }
 
 function bindUI() {
-  $("hour").addEventListener("input", (e) => { state.hour = +e.target.value; update(); });
-  $("now").onclick = () => { state.day = todayStr(); state.hour = nowHour(); renderDays(); update(); };
+  $("now").onclick = () => setTime(todayStr(), nowHour());
   $("openSettings").onclick = openSheet;
   $("closeSettings").onclick = closeSheet;
   $("sheet").addEventListener("click", (e) => { if (e.target === $("sheet")) closeSheet(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if ($("sheet").classList.contains("open")) closeSheet(); else if (sel) select(null); } });
 
   const toggles = { tSat: ["sat", ["sat"]], tFred: ["fred", ["fred-fill", "fred-line", "fred-omr"]], tVand: ["vand", ["vand"]] };
   for (const [id, [key, layers]] of Object.entries(toggles)) {
@@ -766,40 +942,44 @@ function bindUI() {
     $(id).addEventListener("change", (e) => { state.layers[key] = e.target.checked; store.set("layers", state.layers); layers.forEach((l) => setVis(l, e.target.checked)); });
   }
   $("tCb").checked = !!state.layers.cb;
-  $("tCb").addEventListener("change", (e) => { state.layers.cb = e.target.checked; store.set("layers", state.layers); applyPalette(); });
+  $("tCb").addEventListener("change", (e) => { state.layers.cb = e.target.checked; store.set("layers", state.layers); applyPalette(); renderCaption(currentT()); });
 
   const c = state.custom;
   const bind = (id, out, key) => {
     $(id).value = c[key];
     $(out).textContent = `${fmt(+c[key])} m/s`;
-    $(id).addEventListener("input", (e) => { c[key] = +e.target.value; $(out).textContent = `${fmt(c[key])} m/s`; store.set("custom", c); update(); });
+    $(id).addEventListener("input", (e) => { c[key] = +e.target.value; $(out).textContent = `${fmt(c[key])} m/s`; store.set("custom", c); areaSig = ""; update(); });
   };
   bind("cMin", "oMin", "min"); bind("cMax", "oMax", "max"); bind("cLim", "oLim", "lim");
   $("cDir").value = c.dir;
-  $("cDir").addEventListener("change", (e) => { c.dir = e.target.value; store.set("custom", c); update(); });
+  $("cDir").addEventListener("change", (e) => { c.dir = e.target.value; store.set("custom", c); areaSig = ""; update(); });
+  bindTimeline();
+  window.addEventListener("resize", syncDockHeight);
 }
 
 async function startWind() {
   state.windError = null; update();
   try { await loadWeather(); }
   catch (e) { state.windError = e.message || String(e); }
-  renderDays(); lastSig = ""; update();
+  tlSig = ""; areaSig = ""; lastSig = "";
+  update();
 }
 
 async function main() {
   state.day = todayStr();
   state.hour = nowHour();
   applyPalette();
-  renderSpecies(); bindUI(); renderDays(); update();
+  renderSpecies(); bindUI(); update(); syncDockHeight();
   try {
     await loadStatic();
   } catch (e) {
-    $("loading").innerHTML = `<div>Kunne ikke hente kortdata: ${esc(e.message)}</div>`;
+    $("loading").innerHTML = `<div><p>Kortdata kunne ikke hentes: ${esc(e.message)}</p></div>`;
     return;
   }
+  if (!state.vand) $("tVandRow").classList.add("off");
   const m = state.meta;
-  if (m) $("metaInfo").textContent = `Kortdata bygget ${new Date(m.built).toLocaleDateString("da-DK")} · ${(m.counts.segments || 0).toLocaleString("da-DK")} kyststrækninger · ${m.counts.fredning || 0} fredningszoner`;
-  initMap();
+  if (m) $("metaInfo").textContent = `Kortdata er bygget ${new Date(m.built).toLocaleDateString("da-DK", { day: "numeric", month: "long", year: "numeric" })} og dækker ${(m.counts.segments || 0).toLocaleString("da-DK")} kyststrækninger og ${m.counts.fredning || 0} fredningszoner.`;
+  await initMap();
   map.once("load", () => $("loading").classList.add("hide"));
   setTimeout(() => $("loading").classList.add("hide"), 6000);
   startWind();

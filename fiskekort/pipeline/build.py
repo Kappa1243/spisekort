@@ -238,6 +238,27 @@ def build_windpoints(segs, water=None, max_points=240):
     return points
 
 
+def borrow_bearings(segs, max_dist=1500):
+    """Strækninger uden entydig retning (små holme, moler) låner retningen fra den
+    nærmeste strækning med en klar retning, så de ikke får en straf for 'uklar' retning."""
+    known = [s for s in segs if s["b"] >= 0]
+    if not known:
+        return
+    tree = shapely.STRtree([s["mid"] for s in known])
+    n = 0
+    for s in segs:
+        if s["b"] >= 0:
+            continue
+        hit = tree.query_nearest(s["mid"], max_distance=max_dist)
+        if len(hit):
+            s["b"] = known[int(hit[0])]["b"]
+            s["nb"] = 1
+            n += 1
+    left = sum(1 for s in segs if s["b"] < 0)
+    DISCOVERY["borrowed_bearings"] = {"borrowed": n, "still_unknown": left}
+    log(f"Lånt retning: {n} strækninger, {left} stadig uden retning")
+
+
 def direction_check(segs, water):
     """Andel strækninger, hvor 'havsiden' ligger på land og 'landsiden' i vand (omvendt retning)."""
     shapely.prepare(water)
@@ -951,6 +972,7 @@ def main():
         segs = build_segments(lines, countries)
         if water is not None and direction_check(segs, water) > 5:
             errors.append("retning")
+        borrow_bearings(segs)
 
         zones_utm = [transform(TO_UTM.transform, shape(f["geometry"])) for f in fred_feats]
         tree = shapely.STRtree(zones_utm) if zones_utm else None
@@ -972,7 +994,7 @@ def main():
 
         for i, s in enumerate(segs):
             props = {"i": i, "b": s["b"], "g": s["g"]}
-            for k in ("f", "w", "d1", "d2", "s"):
+            for k in ("f", "w", "d1", "d2", "s", "nb"):
                 if k in s:
                     props[k] = s[k]
             gw = transform(TO_WGS.transform, s["geom"].simplify(8))

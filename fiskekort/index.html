@@ -3,166 +3,201 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f2a3a">
+<meta name="theme-color" content="#0B1C2E">
+<meta name="color-scheme" content="dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Fiskekort">
 <title>Fiskekort – kystfiskeri i Danmark</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
 <style>
 :root{
-  --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; --panel:rgba(255,255,255,.94);
-  --navy:#0f2a3a; --good:#16a34a; --ok:#eab308; --bad:#dc2626; --ban:#6d28d9; --none:#94a3b8;
-  --r:14px; --shadow:0 6px 24px rgba(15,23,42,.18);
+  /* Daggry: natteblåt hav, mørkt land, lys tekst. Kystfarverne er de eneste stærke farver. */
+  --sea:#0B1C2E; --land:#16212E; --panel:#102338; --panel-2:#16304B; --line:#24405E;
+  --text:#E8EEF5; --soft:#A9B8C9; --dim:#7489A1;
+  --good:#4ADE9B; --ok:#FACC4D; --bad:#FF6B6B; --ban:#B18CFF; --none:#4B5D73; --reg:#F2A65A;
+  --r-lg:22px; --r-md:14px; --r-sm:9px;
+  --font:"Rubik",system-ui,-apple-system,"Segoe UI",sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+html,body{height:100%;background:var(--sea);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,summary:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--text);outline-offset:2px;border-radius:6px}
+a{color:inherit}
 #map{position:fixed;inset:0}
-.maplibregl-ctrl-top-right{top:calc(58px + env(safe-area-inset-top))}
-.maplibregl-popup-close-button{font-size:22px;width:30px;height:30px;color:var(--muted)}
 
-/* topbar */
-.top{position:fixed;top:calc(10px + env(safe-area-inset-top));left:10px;right:10px;z-index:5;display:flex;gap:8px;align-items:flex-start;pointer-events:none}
-.brand{pointer-events:auto;background:var(--navy);color:#fff;border-radius:var(--r);padding:9px 13px;box-shadow:var(--shadow);display:flex;align-items:center;gap:8px;font-weight:700;letter-spacing:.2px;white-space:nowrap}
-.brand svg{width:20px;height:20px}
-.species{flex:0 1 auto;min-width:0;pointer-events:auto;background:var(--panel);backdrop-filter:blur(8px);border-radius:var(--r);box-shadow:var(--shadow);display:flex;padding:4px;gap:2px;overflow-x:auto;scrollbar-width:none}
+/* ---------- top: arter + indstillinger ---------- */
+.top{position:fixed;z-index:5;top:calc(10px + env(safe-area-inset-top));left:10px;right:10px;display:flex;align-items:center;gap:8px;pointer-events:none}
+.species{pointer-events:auto;display:flex;gap:2px;padding:4px;background:rgba(16,35,56,.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:999px;overflow-x:auto;scrollbar-width:none;min-width:0}
 .species::-webkit-scrollbar{display:none}
-.species button{padding:7px 11px;border-radius:10px;font-size:14px;font-weight:600;color:var(--muted);white-space:nowrap}
-.species button[aria-pressed=true]{background:var(--navy);color:#fff}
-.iconbtn{pointer-events:auto;margin-left:auto;background:var(--panel);backdrop-filter:blur(8px);border-radius:var(--r);box-shadow:var(--shadow);width:42px;height:42px;display:grid;place-items:center;flex:none}
-.iconbtn svg{width:20px;height:20px}
-
-/* bundpanel */
-.bottom{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:5;background:var(--panel);backdrop-filter:blur(10px);border-radius:18px;box-shadow:var(--shadow);padding:12px 14px 12px;max-width:760px;margin:0 auto}
-.row{display:flex;align-items:center;gap:10px}
-.days{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
-.days::-webkit-scrollbar{display:none}
-.days button{flex:none;border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:13px;font-weight:600;color:var(--muted);background:#fff}
-.days button[aria-pressed=true]{background:var(--navy);border-color:var(--navy);color:#fff}
-.nowbtn{flex:none;font-size:13px;font-weight:700;color:var(--navy);border:1px solid var(--navy);border-radius:999px;padding:5px 11px}
-.timeline{margin-top:10px}
-.timeline input{width:100%;accent-color:var(--navy);height:28px}
-.clock{font-variant-numeric:tabular-nums;font-weight:800;font-size:20px;min-width:62px}
-.status{font-size:13px;color:var(--muted);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font-size:12px;color:var(--muted)}
-.legend span{display:inline-flex;align-items:center;gap:5px}
-.legend i{display:inline-block;width:18px;height:5px;border-radius:3px}
-.banner{margin-top:8px;font-size:12.5px;background:#fef3c7;color:#78350f;border-radius:10px;padding:7px 10px;display:none}
-.banner.show{display:block}
-
-/* popup */
-.maplibregl-popup-content{border-radius:14px;padding:14px 16px;box-shadow:var(--shadow);font-size:13.5px;min-width:230px;max-height:calc(100vh - 380px);overflow:auto}
-.pop h3{font-size:15px;margin-bottom:6px;display:flex;align-items:center;gap:8px}
-.pop .dot{width:12px;height:12px;border-radius:50%;flex:none}
-.pop dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin-top:6px}
-.pop dt{color:var(--muted)}
-.pop dd{font-weight:600}
-.pop .note{margin-top:8px;font-size:12.5px;color:#7c2d12;background:#ffedd5;border-radius:8px;padding:6px 8px}
-.pop .ban{margin-top:8px;font-size:12.5px;color:#fff;background:var(--ban);border-radius:8px;padding:6px 8px}
-.arrow{display:inline-block;transition:transform .2s}
-
-/* indstillinger */
-.sheet{position:fixed;inset:0;z-index:20;background:rgba(15,23,42,.35);display:none;align-items:flex-end;justify-content:center}
-.sheet.open{display:flex}
-.sheet .card{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:88vh;overflow:auto;padding:18px 18px calc(22px + env(safe-area-inset-bottom))}
-.sheet h2{font-size:18px;margin-bottom:4px}
-.sheet h4{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:16px 0 8px}
-.sheet p,.sheet li{font-size:14px;line-height:1.5;color:#334155}
-.sheet ul{padding-left:18px}
-.toggle{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
-.toggle input{width:20px;height:20px;accent-color:var(--navy)}
-.field{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;margin:6px 0;font-size:14px}
-.field input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--navy)}
-.field output{font-weight:700;font-variant-numeric:tabular-nums}
-select{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--line)}
-.close{float:right;font-size:26px;line-height:1;color:var(--muted)}
-.muted{color:var(--muted);font-size:12.5px}
+.species button{padding:7px 13px;border-radius:999px;color:var(--soft);font-weight:500;white-space:nowrap;transition:background .15s,color .15s}
+.species button[aria-pressed=true]{background:var(--text);color:var(--sea)}
 .species .short{display:none}
-.factors{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
-.factors span{font-size:12px;border-radius:999px;padding:2px 8px;background:#f1f5f9;color:#334155}
-.factors .up{background:#dcfce7;color:#166534}
-.factors .down{background:#fee2e2;color:#991b1b}
-.tag{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:0 5px;background:rgba(255,255,255,.35);margin-left:4px}
-.note .tag{background:rgba(124,45,18,.12)}
-.status.err{color:#b91c1c;font-weight:600;white-space:normal}
-.lure{margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:7px 9px}
-.lure .lt{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700}
-.lure .lw{display:flex;align-items:center;gap:4px;margin:3px 0 2px;flex-wrap:wrap}
-.lure .lw b{margin-left:4px}
-.sw{display:inline-block;width:14px;height:14px;border-radius:50%;border:1px solid rgba(15,23,42,.25)}
-.sun{font-size:12px;color:var(--muted);white-space:nowrap}
-.loading{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:#f8fafc;transition:opacity .4s}
+.gear{pointer-events:auto;margin-left:auto;flex:none;width:42px;height:42px;display:grid;place-items:center;border-radius:50%;background:rgba(16,35,56,.88);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--line);color:var(--soft)}
+.gear svg{width:20px;height:20px}
+
+/* ---------- dock: svarkort + tidslinje ---------- */
+.dock{position:fixed;z-index:6;left:0;right:0;bottom:0;padding:0 12px calc(12px + env(safe-area-inset-bottom));pointer-events:none}
+.dock-inner{pointer-events:auto;max-width:440px;background:rgba(16,35,56,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;box-shadow:0 12px 40px rgba(2,8,16,.55)}
+@media (max-width:560px){.dock{padding:0}.dock-inner{max-width:none;border-radius:var(--r-lg) var(--r-lg) 0 0;border-bottom:0;padding-bottom:env(safe-area-inset-bottom)}}
+
+/* svarkort */
+.card{padding:16px 18px 4px;max-height:min(58vh,520px);overflow-y:auto;border-bottom:1px solid var(--line)}
+.card[hidden]{display:none}
+.card-head{display:flex;align-items:flex-start;gap:12px}
+.verdict{font-size:34px;line-height:1;font-weight:700;letter-spacing:-.5px}
+.for{color:var(--soft);font-size:14px;margin-top:5px}
+.close{margin-left:auto;flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:var(--soft);background:var(--panel-2)}
+.close svg{width:16px;height:16px}
+.why{margin-top:12px;font-size:16px;line-height:1.5}
+.lure{display:flex;gap:12px;align-items:center;margin-top:14px;padding:11px 12px;background:var(--panel-2);border-radius:var(--r-md)}
+.swatches{display:flex;flex:none}
+.swatches i{display:block;width:22px;height:22px;border-radius:50%;border:2px solid var(--panel-2);margin-left:-6px;box-shadow:0 0 0 1px rgba(255,255,255,.35)}
+.swatches i:first-child{margin-left:0}
+.lure b{display:block;font-weight:600}
+.lure span{display:block;color:var(--soft);font-size:13px;margin-top:1px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.chips span{font-size:13px;padding:3px 10px;border-radius:999px;background:var(--panel-2);color:var(--soft)}
+.chips .up{color:var(--good)}
+.chips .down{color:var(--bad)}
+.rules{margin-top:12px;display:grid;gap:8px}
+.rule{padding:10px 12px;border-radius:var(--r-md);font-size:14px;line-height:1.45;background:var(--panel-2);border-left:3px solid var(--reg)}
+.rule.ban{border-left-color:var(--ban);background:rgba(177,140,255,.12)}
+.rule.info{border-left-color:var(--dim)}
+.rule small{display:block;color:var(--soft);font-size:12.5px;margin-top:3px}
+.rule .tag{font-size:12px;color:var(--soft)}
+details{margin:12px 0 10px}
+summary{cursor:pointer;color:var(--soft);font-size:14px;list-style:none;display:inline-flex;align-items:center;gap:6px}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"";width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(-45deg);transition:transform .15s}
+details[open] summary::before{transform:rotate(45deg)}
+dl{display:grid;grid-template-columns:auto 1fr;gap:5px 16px;margin-top:10px;font-size:14px}
+dt{color:var(--soft)}
+dd{text-align:right}
+
+/* tidslinje */
+.time{padding:12px 16px 10px}
+.time-head{display:flex;align-items:baseline;gap:10px}
+.when{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+.now{margin-left:auto;font-size:14px;font-weight:500;color:var(--soft);padding:5px 12px;border:1px solid var(--line);border-radius:999px}
+.tl{margin-top:10px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;touch-action:pan-x;cursor:pointer;user-select:none;-webkit-user-select:none;padding-bottom:2px}
+.tl::-webkit-scrollbar{display:none}
+.tday{flex:none}
+.bars{display:flex;align-items:flex-end;gap:1px;height:46px}
+.bars i{display:block;width:4px;border-radius:2px 2px 1px 1px;background:var(--none);min-height:3px;transition:height .25s ease}
+.bars i.c3{background:var(--good)} .bars i.c2{background:var(--ok)} .bars i.c1{background:var(--bad)} .bars i.c9{background:var(--ban)}
+.bars i.past{opacity:.28}
+.bars i.on{box-shadow:0 0 0 1.5px var(--text);width:6px}
+.dl{font-size:12px;color:var(--dim);margin-top:5px;white-space:nowrap}
+.dl.sel{color:var(--text)}
+.caption{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:12.5px;color:var(--dim)}
+.caption .err{color:var(--bad)}
+.key{display:inline-flex;align-items:center;gap:5px}
+.key i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.key i.ring{background:none;box-shadow:inset 0 0 0 2px var(--reg)}
+
+/* ---------- indstillinger ---------- */
+.sheet{position:fixed;inset:0;z-index:20;background:rgba(3,10,20,.55);display:none;justify-content:flex-end}
+.sheet.open{display:flex}
+.sheet .panel{background:var(--panel);border-left:1px solid var(--line);width:min(420px,100%);height:100%;overflow-y:auto;padding:22px 22px calc(28px + env(safe-area-inset-bottom))}
+@media (max-width:560px){.sheet{align-items:flex-end}.sheet .panel{height:auto;max-height:90vh;border-left:0;border-top:1px solid var(--line);border-radius:var(--r-lg) var(--r-lg) 0 0}}
+.sheet h2{font-size:22px;font-weight:600}
+.sheet h3{font-size:15px;font-weight:600;margin:22px 0 8px}
+.sheet p,.sheet li{font-size:14px;color:var(--soft);line-height:1.55}
+.sheet ul{padding-left:18px;display:grid;gap:6px}
+.sheet .panel .close{float:right}
+.toggle{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);font-size:15px;cursor:pointer}
+.toggle input{width:20px;height:20px;accent-color:var(--good)}
+.toggle.off{opacity:.45}
+.legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 14px;font-size:14px;color:var(--soft)}
+.legend span{display:flex;align-items:center;gap:8px}
+.legend i{width:22px;height:5px;border-radius:3px;display:inline-block;flex:none}
+.legend i.ring{height:9px;background:none;box-shadow:inset 0 0 0 2px var(--reg)}
+.field{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;margin:10px 0;font-size:14px}
+.field input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--good)}
+.field output{font-weight:600;font-variant-numeric:tabular-nums}
+select{font:inherit;color:var(--text);background:var(--panel-2);padding:7px 10px;border-radius:var(--r-sm);border:1px solid var(--line)}
+.fine{font-size:12.5px;color:var(--dim);margin-top:14px}
+
+/* ---------- maplibre i mørkt ---------- */
+.maplibregl-ctrl-top-right{top:calc(60px + env(safe-area-inset-top))}
+.maplibregl-ctrl-group{background:rgba(16,35,56,.9)!important;border:1px solid var(--line);box-shadow:none!important}
+.maplibregl-ctrl-group button+button{border-top:1px solid var(--line)!important}
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon{filter:invert(1) brightness(.85)}
+.maplibregl-ctrl-attrib{background:rgba(11,28,46,.75)!important;color:var(--dim)}
+.maplibregl-ctrl-attrib a{color:var(--soft)}
+.maplibregl-ctrl-attrib-button{filter:invert(1)}
+.maplibregl-ctrl-bottom-right,.maplibregl-ctrl-bottom-left{bottom:var(--dock-h,170px)}
+
+.loading{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:var(--sea);transition:opacity .5s}
 .loading.hide{opacity:0;pointer-events:none}
-.loading div{font-weight:600;color:var(--muted)}
-@media (max-width:560px){
-  .brand span{display:none}
-  .brand{padding:9px 10px}
-  .clock{font-size:18px}
-  .species button{padding:7px 9px;font-size:13.5px}
+.loading p{color:var(--soft)}
+.dawn{width:120px;height:3px;margin:16px auto 0;border-radius:3px;background:linear-gradient(90deg,transparent,var(--reg),transparent);background-size:200% 100%;animation:dawn 1.6s ease-in-out infinite}
+@keyframes dawn{0%{background-position:100% 0}100%{background-position:-100% 0}}
+
+@media (max-width:420px){
+  .species button{padding:7px 10px}
   .species .long{display:none}
   .species .short{display:inline}
-  .sun{display:none}
 }
-@media (max-width:420px){
-  .brand{display:none}
-  .species button{padding:7px 8px;font-size:13px}
-}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
 <body>
-<div id="map"></div>
+<div id="map" role="application" aria-label="Kort over den danske kyst"></div>
 
 <div class="top">
-  <div class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12c3-5 8-6 12-4l6-3-2 7 2 7-6-3c-4 2-9 1-12-4z"/><circle cx="7.5" cy="11" r=".8" fill="currentColor"/></svg><span>Fiskekort</span></div>
   <div class="species" id="species" role="group" aria-label="Art"></div>
-  <button class="iconbtn" id="openSettings" aria-label="Indstillinger og info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2" fill="#fff"/><circle cx="15" cy="12" r="2" fill="#fff"/><circle cx="8" cy="18" r="2" fill="#fff"/></svg></button>
+  <button class="gear" id="openSettings" aria-label="Indstillinger og forklaring">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+  </button>
 </div>
 
-<div class="bottom">
-  <div class="row">
-    <div class="days" id="days"></div>
-    <button class="nowbtn" id="now">Nu</button>
+<div class="dock" id="dock">
+  <div class="dock-inner">
+    <section class="card" id="card" hidden aria-live="polite"></section>
+    <div class="time">
+      <div class="time-head">
+        <div class="when" id="when">I dag</div>
+        <button class="now" id="now">Nu</button>
+      </div>
+      <div class="tl" id="tl" role="slider" tabindex="0" aria-label="Vælg tidspunkt" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0"></div>
+      <div class="caption" id="caption"></div>
+    </div>
   </div>
-  <div class="row timeline">
-    <div class="clock" id="clock">--:--</div>
-    <input type="range" id="hour" min="0" max="23" step="1" value="12" aria-label="Tidspunkt">
-  </div>
-  <div class="row"><div class="status" id="status">Henter data …</div><div class="sun" id="sun"></div></div>
-  <div class="legend">
-    <span><i style="background:var(--good)"></i>God</span>
-    <span><i style="background:var(--ok)"></i>Middel</span>
-    <span><i style="background:var(--bad)"></i>Dårlig</span>
-    <span><i style="background:var(--ban)"></i>Fiskeri forbudt</span>
-    <span><i style="background:var(--none)"></i>Ingen vind-data</span>
-    <span><i style="background:#fff;outline:2px solid #ea580c"></i>Særlige regler</span>
-  </div>
-  <div class="banner" id="banner"></div>
 </div>
 
 <div class="sheet" id="sheet" aria-hidden="true">
-  <div class="card">
-    <button class="close" id="closeSettings" aria-label="Luk">×</button>
-    <h2>Indstillinger</h2>
-    <p class="muted" id="metaInfo"></p>
+  <div class="panel" role="dialog" aria-labelledby="sheetTitle">
+    <button class="close" id="closeSettings" aria-label="Luk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <h2 id="sheetTitle">Fiskekort</h2>
+    <p id="metaInfo"></p>
 
-    <h4>Kortlag</h4>
+    <h3>Farverne på kysten</h3>
+    <div class="legend">
+      <span><i style="background:var(--good)"></i>Gode forhold</span>
+      <span><i style="background:var(--ok)"></i>Middel</span>
+      <span><i style="background:var(--bad)"></i>Dårlige forhold</span>
+      <span><i style="background:var(--ban)"></i>Fiskeri forbudt</span>
+      <span><i class="ring"></i>Særlige regler</span>
+      <span><i style="background:var(--none)"></i>Ingen vinddata</span>
+    </div>
+
+    <h3>Kortlag</h3>
     <label class="toggle">Luftfoto <input type="checkbox" id="tSat"></label>
     <label class="toggle">Fredningszoner <input type="checkbox" id="tFred" checked></label>
-    <label class="toggle">Vandkvalitet (VP3) <input type="checkbox" id="tVand"></label>
-    <label class="toggle">Farveblind-venlige farver <input type="checkbox" id="tCb"></label>
-    <div class="legend" style="margin:6px 0 2px">
-      <span><i style="background:#2563eb"></i>Høj</span><span><i style="background:#16a34a"></i>God</span>
-      <span><i style="background:#eab308"></i>Moderat</span><span><i style="background:#f97316"></i>Ringe</span>
-      <span><i style="background:#dc2626"></i>Dårlig</span>
-    </div>
-    <p class="muted">Økologisk tilstand i kystvandene (vandområdeplanerne 2021–2027). Dårlig tilstand giver højst gul. For fladfisk/torsk gælder det også dårlig bundfauna (tegn på iltsvind). Ringe tilstand vises kun i detaljerne: 80 af 109 kystvande er ringe eller dårlige, så et loft dér ville gøre næsten hele landet gult.</p>
+    <label class="toggle" id="tVandRow">Vandkvalitet <input type="checkbox" id="tVand"></label>
+    <label class="toggle">Farver for farveblinde <input type="checkbox" id="tCb"></label>
 
     <div id="customBox">
-      <h4>Egne grænser (art: Generelt)</h4>
-      <div class="field"><span>Ideel vind, fra</span><output id="oMin"></output><input type="range" id="cMin" min="0" max="12" step="0.5"></div>
-      <div class="field"><span>Ideel vind, til</span><output id="oMax"></output><input type="range" id="cMax" min="1" max="16" step="0.5"></div>
-      <div class="field"><span>For meget vind over</span><output id="oLim"></output><input type="range" id="cLim" min="4" max="20" step="0.5"></div>
-      <div class="field"><span>Foretrukken vindretning</span>
+      <h3>Dine grænser</h3>
+      <div class="field"><span>Bedst fra</span><output id="oMin"></output><input type="range" id="cMin" min="0" max="12" step="0.5"></div>
+      <div class="field"><span>Bedst til</span><output id="oMax"></output><input type="range" id="cMax" min="1" max="16" step="0.5"></div>
+      <div class="field"><span>For meget over</span><output id="oLim"></output><input type="range" id="cLim" min="4" max="20" step="0.5"></div>
+      <div class="field"><span>Vindretning</span>
         <select id="cDir">
           <option value="on">Pålandsvind</option>
           <option value="side">Sidevind</option>
@@ -172,26 +207,22 @@ select{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--lin
       </div>
     </div>
 
-    <h4>Sådan beregnes farven</h4>
+    <h3>Sådan vurderes kysten</h3>
     <ul>
-      <li>Kysten er delt i stykker på ca. 500 m. Hvert stykke kender sin retning ud mod vandet.</li>
-      <li><b>Vind:</b> Prognosen (Open-Meteo, DMI HARMONIE de første ~2,5 døgn, derefter ECMWF) sammenlignes med kystens retning: pålandsvind, sidevind eller fralandsvind. Vindstyrken vurderes mod artens ideelle interval, og kraftige vindstød trækker ned.</li>
-      <li><b>Uklart vand:</b> Har der været mindst 8 timer med kraftig pålandsvind (≥ 9 m/s) eller hård vind (≥ 13 m/s) de seneste 36 timer, er vandet sandsynligvis uklart. For havørred og hornfisk giver det højst gul.</li>
-      <li><b>Havtemperatur</b> (Open-Meteo Marine): havørred trives bedst ved ca. 6–12 °C, hornfisk ved 12–18 °C, fladfisk/torsk ved 4–14 °C.</li>
-      <li><b>Lys:</b> Skumring og daggry giver et plus for havørred og fladfisk. Hornfisk jager efter synet og trækkes ned i mørke. Når vandet er varmt, er natten bedre end middagstimerne for havørred.</li>
-      <li><b>Dybde og bund</b> (EMODnet; dybde ca. 115 m opløsning, bundtype 1:250.000 – groft tæt på land): sten/grus og dybt vand tæt på land giver plus for havørred, sandbund for fladfisk.</li>
-      <li><b>Vandkvalitet</b> (Miljøstyrelsen): dårlig økologisk tilstand giver højst gul.</li>
-      <li><b>Fredningsbælter</b>, der gælder på den valgte dato, vises lilla og overstyrer alt. Zoner med særlige regler (fx fangstbegrænsning eller redskabsforbud, men stangfiskeri tilladt) får en orange kant. Store og uklare zoner er håndkontrolleret mod bekendtgørelserne, og popuppen viser, om en zone er kontrolleret.</li>
-      <li>Klik på en kyststrækning for at se begrundelsen og hvilke faktorer, der trækker op og ned.</li>
-      <li><b>Blinkfarve (gæt):</b> Popuppen foreslår en farve på blink eller pirk ud fra lys, skydække, uklart vand, grønt vand (klorofyl), bund og havtemperatur. Det er lystfiskertradition, ikke målt viden, og det påvirker ikke farven på kortet.</li>
+      <li><b>Vind</b> fra DMI's model sammenlignes med kystens retning. Pålandsvind i den rette styrke er bedst for havørred.</li>
+      <li><b>Uklart vand:</b> efter mindst 8 timers kraftig pålandsvind eller hård vind det seneste halvandet døgn bliver havørred og hornfisk højst gule.</li>
+      <li><b>Havtemperatur, lys, dybde og bund</b> trækker op eller ned for hver art.</li>
+      <li><b>Vandkvalitet:</b> kystvande i dårlig økologisk tilstand bliver højst gule.</li>
+      <li><b>Fredningsbælter</b> gælder på den valgte dato og overstyrer alt. Store og uklare zoner er kontrolleret mod bekendtgørelserne.</li>
+      <li><b>Blink og pirk</b> er et forslag ud fra lys, skydække, uklart vand og bund. Det er lystfiskertradition, ikke målt viden.</li>
     </ul>
-    <h4>Vigtigt</h4>
-    <p>Kortet er et planlægningsværktøj og erstatter ikke de gældende regler. Tjek altid Fiskeristyrelsens regler og lokale skilte. Scoren er en hypotese, der endnu ikke er kalibreret mod fangster.</p>
-    <p class="muted" style="margin-top:10px">Data: © OpenStreetMap-bidragydere (ODbL) · Fiskeristyrelsen · Miljøstyrelsen · EMODnet Bathymetry og Geology (CC BY 4.0) · Vejr og havtemperatur: Open-Meteo.com (CC BY 4.0), DMI · Kort: OpenFreeMap</p>
+    <h3>Vigtigt</h3>
+    <p>Kortet er et planlægningsværktøj. Det erstatter ikke de gældende regler, og vurderingerne er endnu ikke prøvet af mod fangster.</p>
+    <p class="fine">Data: OpenStreetMap-bidragydere (ODbL), Fiskeristyrelsen, Miljøstyrelsen, EMODnet Bathymetry og Geology (CC BY 4.0), Open-Meteo.com og DMI (CC BY 4.0), OpenFreeMap.</p>
   </div>
 </div>
 
-<div class="loading" id="loading"><div>Henter kyst og vind …</div></div>
+<div class="loading" id="loading"><div><p>Henter kyst og vind</p><div class="dawn"></div></div></div>
 
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 <script src="app.js"></script>
