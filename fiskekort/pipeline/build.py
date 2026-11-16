@@ -829,10 +829,15 @@ def load_substrate():
 
 
 def substrate_code(props: dict) -> int:
-    text = " ".join(str(v) for k, v in props.items()
-                    if isinstance(v, str) and re.search(r"subs|folk|class|descr|name", k, re.I))
+    """Folk 5-klasser: Mud to muddy sand / Sand / Coarse substrate / Mixed sediment / Rock & boulders."""
+    t = str(props.get("folk_5cl_txt") or "").strip().lower()
+    if not t:
+        t = " ".join(str(v) for k, v in props.items()
+                      if isinstance(v, str) and re.search(r"subs|folk|class|descr", k, re.I)).lower()
+    if t.startswith("mud") or "mud to" in t:
+        return 1
     for code, rx, _ in SUBSTRATE_CLASSES:
-        if re.search(rx, text, re.I):
+        if re.search(rx, t, re.I):
             return code
     return 0
 
