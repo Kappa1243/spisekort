@@ -350,9 +350,26 @@ def arcgis_search(q):
     return j.get("results", [])
 
 
+# Fredningsbælter (Landbrugs- og Fiskeristyrelsens web-app på lbst.maps.arcgis.com)
+FRED_SERVICE = ("https://services-eu1.arcgis.com/c3o7qz6F0HswtuVz/arcgis/rest/services/"
+                "Fredningsbælter/FeatureServer")
+
+
 def fetch_fredning():
     layers: list = []
     errors = []
+    try:
+        collect_arcgis_layers([{"url": FRED_SERVICE, "title": "Fredningsbælter"}], layers)
+        layers = [l for l in layers if l["feats"]]
+    except Exception as e:  # noqa: BLE001
+        errors.append(f"service: {e}"[:300])
+        layers = []
+    if layers:
+        DISCOVERY["fred_errors"] = errors
+        DISCOVERY["fred_layers"] = [
+            {"title": l["title"], "src": l["src"], "error": l.get("error"), **summarize(l["feats"])}
+            for l in layers]
+        return layers
     # a) Fiskeristyrelsens web-app (link fra fiskepleje.dk)
     try:
         app = arcgis_item_data(FRED_APP_ID)
@@ -395,6 +412,49 @@ def fetch_fredning():
     return layers
 
 
+MONTHS = {"jan": 1, "feb": 2, "mar": 3, "apr": 4, "maj": 5, "jun": 6, "jul": 7, "aug": 8,
+          "sep": 9, "okt": 10, "nov": 11, "dec": 12}
+PERIOD_RE = re.compile(r"(\d{1,2})\.?\s*([a-zæøå]{3})[a-zæøå]*\.?\s*(?:-|–|til)\s*"
+                       r"(?:og med\s*)?(\d{1,2})\.?\s*([a-zæøå]{3})", re.I)
+
+
+def parse_periods(text: str):
+    out = []
+    for d1, m1, d2, m2 in PERIOD_RE.findall(text or ""):
+        a, b = MONTHS.get(m1.lower()), MONTHS.get(m2.lower())
+        if a and b:
+            out.append([a, int(d1), b, int(d2)])
+    return out
+
+
+def classify_lfst(a: dict):
+    """LFST-laget: FREDNINGSP (tekst), PeriodeTyp (1=helår, 2=halvår, 0=andet)."""
+    txt = str(a.get("FREDNINGSP") or "").strip()
+    ptype = str(a.get("PeriodeTyp") or "").strip()
+    periods = parse_periods(txt)
+    if re.search(r"hele året|helår|helårlig", txt, re.I) or (ptype == "1" and not periods):
+        t, periods = "hel", []
+    elif periods:
+        t = "per"
+    elif ptype == "2":
+        t, periods = "per", [[9, 16, 3, 15]]
+    else:
+        t = "ukendt"
+    red = str(a.get("Redskab") or "").strip()
+    rod_ok = bool(re.search(r"stang", red, re.I) and re.search(r"tilladt", red, re.I))
+    props = {"t": t, "n": str(a.get("NAVN") or "").strip()[:100], "txt": txt[:120]}
+    if periods:
+        props["p"] = periods
+    if red:
+        props["r"] = red[:120]
+    if rod_ok:
+        props["stang"] = 1
+    www = str(a.get("WWW") or "").strip()
+    if www.startswith("http"):
+        props["url"] = www
+    return props
+
+
 def classify_fred(title: str, attrs: dict) -> tuple[str, str]:
     """-> (type, label). type: 'hel' (hele året), 'halv' (16/9-15/3), 'saer' (andre regler)."""
     text = (title + " " + " ".join(str(v) for v in attrs.values() if v is not None)).lower()
@@ -412,17 +472,36 @@ def classify_fred(title: str, attrs: dict) -> tuple[str, str]:
 
 
 def build_fredning(layers):
-    feats = []
+    feats, seen = [], set()
+    unparsed = defaultdict(int)
+    texts = defaultdict(int)
     for l in layers:
         for g, a in l["feats"]:
             if g is None or g.is_empty or g.geom_type not in ("Polygon", "MultiPolygon"):
                 continue
-            typ, label = classify_fred(l["title"], a)
+            key = (a.get("ID"), a.get("NAVN"), round(g.area, 9))
+            if key in seen:
+                continue
+            seen.add(key)
+            if "FREDNINGSP" in a or "PeriodeTyp" in a:
+                props = classify_lfst(a)
+                texts[f"{a.get('PeriodeTyp')} | {props['txt']}"] += 1
+                if props["t"] == "ukendt":
+                    unparsed[props["txt"]] += 1
+            else:
+                typ, label = classify_fred(l["title"], a)
+                props = {"t": "hel" if typ == "hel" else "per" if typ == "halv" else "ukendt",
+                         "n": label[:120]}
+                if typ == "halv":
+                    props["p"] = [[9, 16, 3, 15]]
+            props["id"] = len(feats)
             g = g.simplify(0.00002)
-            feats.append({"type": "Feature", "id": len(feats),
-                          "properties": {"id": len(feats), "t": typ, "n": label[:120],
-                                         "lag": l["title"][:120]},
+            feats.append({"type": "Feature", "id": len(feats), "properties": props,
                           "geometry": json.loads(json.dumps(mapping(g)))})
+    DISCOVERY["fred_period_texts"] = dict(sorted(texts.items(), key=lambda kv: -kv[1]))
+    DISCOVERY["fred_unparsed"] = dict(unparsed)
+    DISCOVERY["fred_types"] = {t: sum(1 for f in feats if f["properties"]["t"] == t)
+                               for t in ("hel", "per", "ukendt")}
     for f in feats:  # afrund koordinater
         geom = f["geometry"]
         if geom["type"] == "Polygon":
@@ -485,32 +564,35 @@ def status_code(v):
     if v is None:
         return 0
     t = str(v).strip().lower()
+    if t.startswith("maksimalt"):
+        return 5
+    if t.startswith(("ikke", "ukendt")):
+        return 0
     for w, c in STATUS_WORDS.items():
-        if t.startswith(w) or f" {w}" in f" {t}":
+        if t.startswith(w):
             return c
     return 0
 
 
+VP3_FIELDS = {"sm": "til_oko_sm", "fy": "til_oko_fy", "an": "til_oko_an", "bb": "til_oko_bb"}
+
+
 def build_vand():
+    """Økologisk tilstand pr. kystvand. sm = samlet, fy = fytoplankton (klorofyl),
+    an = ålegræs/blomsterplanter, bb = bundfauna (påvirkes af iltsvind)."""
     feats = wfs_get_all(VP3_EP, VP3_LAYER)
     props = [f.get("properties") or {} for f in feats]
     keys = sorted({k for p in props for k in p})
     distinct = {k: sorted({str(p.get(k))[:60] for p in props})[:25] for k in keys}
     DISCOVERY["vp3_layer"] = {"layer": VP3_LAYER, "count": len(feats), "fields": keys,
                               "distinct": distinct, "sample": props[:2]}
-    # find felter med tilstandsklasser
-    status_fields = [k for k in keys
-                     if sum(status_code(p.get(k)) > 0 for p in props) > 0.3 * len(props)]
-    DISCOVERY["vp3_status_fields"] = status_fields
-    pref = [k for k in status_fields if re.search(r"oko|øko|samlet|eco", k, re.I)]
-    main_field = (pref or status_fields or [None])[0]
-    name_field = next((k for k in keys if re.search(r"navn|name", k, re.I)), None)
     out = []
     for f, p in zip(feats, props):
+        if str(p.get("ov_kat", "Kystvand")) != "Kystvand":
+            continue
         g = shape(f["geometry"]) if f.get("geometry") else None
         if g is None or g.is_empty:
             continue
-        code = status_code(p.get(main_field)) if main_field else 0
         g = g.simplify(0.0004, preserve_topology=True)
         gj = json.loads(json.dumps(mapping(g)))
         if gj["type"] == "Polygon":
@@ -519,13 +601,13 @@ def build_vand():
             gj["coordinates"] = [[rnd(r, 4) for r in poly] for poly in gj["coordinates"]]
         else:
             continue
-        details = {k: p.get(k) for k in status_fields if k != main_field and p.get(k) not in (None, "")}
-        out.append({"type": "Feature", "properties": {
-            "id": len(out), "n": str(p.get(name_field) or "")[:100],
-            "code": code, "label": str(p.get(main_field) or "Ukendt")[:60],
-            "cap": 2 if code in (1, 2) else None, "color": STATUS_COLORS[code],
-            "d": details}, "geometry": gj})
-    DISCOVERY["vp3_main_field"] = main_field
+        pr = {"id": len(out), "n": str(p.get("ov_navn") or "")[:100],
+              "label": str(p.get("til_oko_sm") or "Ukendt").replace(" økologisk", "")[:60]}
+        for k, field in VP3_FIELDS.items():
+            pr[k] = status_code(p.get(field))
+        pr["color"] = STATUS_COLORS[pr["sm"]]
+        out.append({"type": "Feature", "properties": pr, "geometry": gj})
+    DISCOVERY["vp3_sm_counts"] = {c: sum(1 for f in out if f["properties"]["sm"] == c) for c in range(6)}
     return out
 
 
@@ -583,7 +665,7 @@ def main():
             layers = fetch_fredning()
             fred_feats = build_fredning(layers)
             meta["sources"]["fredning"] = "Fiskeristyrelsen, Kort over fredningsbælter (ArcGIS)"
-            log(f"Fredningszoner: {len(fred_feats)}")
+            log(f"Fredningszoner: {len(fred_feats)} {DISCOVERY.get('fred_types')}")
         except Exception:  # noqa: BLE001
             log("FEJL fredningsbælter:\n" + traceback.format_exc())
         try:
@@ -595,7 +677,7 @@ def main():
         try:
             vand_feats = build_vand()
             meta["sources"]["vand"] = "Miljøstyrelsen, vandområdeplaner 2021-2027 (VP3), kystvande"
-            log(f"Kystvandområder: {len(vand_feats)} (felt: {DISCOVERY.get('vp3_main_field')})")
+            log(f"Kystvandområder: {len(vand_feats)} {DISCOVERY.get('vp3_sm_counts')}")
         except Exception:  # noqa: BLE001
             log("FEJL VP3:\n" + traceback.format_exc())
 
