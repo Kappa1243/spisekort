@@ -974,8 +974,12 @@ def fetch_oerred():
     # Hele landet i én forespørgsel giver timeout på serveren, så der hentes i 5 x 4 felter.
     nx, ny = 5, 4
     feats, seen, failed = [], set(), 0
+    deadline = time.time() + 15 * 60  # samlet tidsbudget, så builden ikke hænger på en langsom server
     for i in range(nx):
         for j in range(ny):
+            if time.time() > deadline:
+                failed += 1
+                continue
             bx0, bx1 = xa + (xb - xa) * i / nx, xa + (xb - xa) * (i + 1) / nx
             by0, by1 = ya + (yb - ya) * j / ny, ya + (yb - ya) * (j + 1) / ny
             try:
@@ -984,7 +988,7 @@ def fetch_oerred():
                     "query_layers": OERRED_LAYER, "styles": "", "srs": "EPSG:25832",
                     "bbox": f"{bx0:.0f},{by0:.0f},{bx1:.0f},{by1:.0f}",
                     "width": 1, "height": 1, "x": 0, "y": 0, "info_format": "application/json",
-                    "feature_count": 20000, "buffer": 5000}, timeout=240, tries=3)
+                    "feature_count": 20000, "buffer": 5000}, timeout=90, tries=2)
                 for f in r.json().get("features", []):
                     p = f.get("properties") or {}
                     key = (p.get("st_id"), p.get("bl_id"), json.dumps((f.get("geometry") or {}).get("coordinates")))
