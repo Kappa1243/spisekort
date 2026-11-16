@@ -968,7 +968,7 @@ def main():
         wind = build_windpoints(segs, water)
         if not a.skip_remote:
             place_quality(segs, cache)
-            meta["sources"]["dybde"] = "EMODnet Bathymetry DTM 2024; bundtype: EMODnet Seabed Habitats EUSeaMap"
+            meta["sources"]["dybde"] = "EMODnet Bathymetry DTM 2024; bundtype: EMODnet Geology seabed substrate 1:250.000"
 
         for i, s in enumerate(segs):
             props = {"i": i, "b": s["b"], "g": s["g"]}
