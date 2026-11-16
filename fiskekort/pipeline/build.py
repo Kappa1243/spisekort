@@ -750,7 +750,7 @@ def discover_vp3():
 BATHY_URL = ("https://erddap.emodnet.eu/erddap/griddap/bathymetry_dtm_2024.nc?"
              "elevation[({lat0}):1:({lat1})][({lon0}):1:({lon1})]")
 SUBSTRATE_WFS = [
-    "https://ows.emodnet-seabedhabitats.eu/geoserver/emodnet_open/wfs",
+    "https://drive.emodnet-geology.eu/geoserver/gtk/wfs",
     "https://ows.emodnet-seabedhabitats.eu/geoserver/emodnet_view/wfs",
 ]
 SUBSTRATE_CLASSES = [  # (kode, regex mod klassenavn, dansk navn)
@@ -794,14 +794,19 @@ def load_substrate():
         except Exception as e:  # noqa: BLE001
             DISCOVERY.setdefault("substrate_errors", []).append(f"{ep}: {e}"[:200])
             continue
-        allsubs = [n for n, t in names if re.search(r"subs", n, re.I)]
+        allsubs = [n for n, t in names if re.search(r"subs|eusm", n, re.I)]
         DISCOVERY.setdefault("substrate_layers", {})[ep] = allsubs[:80]
-        # Europæiske EUSeaMap-substratlag (ikke caribiske/kaspiske), nyeste år og fuld opløsning først.
-        cands = [n for n in allsubs if re.search(r"(^|:)eusm\d{4}_subs", n, re.I)]
+        # EMODnet Geology: seabed_substrate_<skala>; grovere skalaer dækker hele Danmark.
+        # EUSeaMap: europæiske substratlag (ikke caribiske/kaspiske).
+        cands = [n for n in allsubs if re.search(r"seabed_substrate_(250k|1m|100k|50k)", n, re.I)
+                 or re.search(r"(^|:)eusm\d{4}_subs", n, re.I)]
 
         def rank(n):
-            year = int((re.search(r"eusm(\d{4})", n) or [0, 0])[1])
-            return (-year, 0 if n.endswith("_full") else 1, len(n))
+            order = ["250k", "1m", "100k", "50k"]
+            for i, o in enumerate(order):
+                if re.search(rf"_{o}", n, re.I):
+                    return (i, len(n))
+            return (9, len(n))
         cands.sort(key=rank)
         for n in cands:
             try:
