@@ -273,10 +273,11 @@ function initMap() {
   };
   map.on("click", (e) => {
     const f = hit(e);
-    if (!f) return;
+    if (!f) { if (popup) popup.remove(); return; }
+    // Popuppen vises over punktet; flyt kortet, så punktet ligger lige over bundpanelet.
     const panel = document.querySelector(".bottom").getBoundingClientRect();
-    const room = panel.top - 20;
-    if (e.point.y > room * 0.6) map.panBy([0, e.point.y - room * 0.55], { duration: 300 });
+    const target = panel.top - 30;
+    if (Math.abs(e.point.y - target) > 40) map.panBy([0, e.point.y - target], { duration: 300 });
     openPopup(f, e.lngLat);
   });
   map.on("mousemove", (e) => { map.getCanvas().style.cursor = hit(e) ? "pointer" : ""; });
@@ -409,7 +410,7 @@ function popupHTML(f) {
 }
 function openPopup(f, lngLat) {
   popupFeature = state.coast.features[f.properties.i] || f;
-  if (!popup) popup = new maplibregl.Popup({ maxWidth: "320px", focusAfterOpen: false });
+  if (!popup) popup = new maplibregl.Popup({ maxWidth: "320px", focusAfterOpen: false, anchor: "bottom", closeOnClick: false });
   popup.setLngLat(lngLat).setHTML(popupHTML(popupFeature)).addTo(map);
 }
 
