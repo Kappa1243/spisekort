@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-15",
+  "updated": "2026-11-16",
   "country": "DK",
   "app": 5,
   "films": [
@@ -393,6 +393,37 @@
       ],
       "checked": "2026-11-15",
       "added": "2026-11-13"
+    },
+    {
+      "id": "into-the-white",
+      "title": "Into the White",
+      "danishTitle": "",
+      "originalTitle": "",
+      "year": 2012,
+      "runtime": 104,
+      "genres": [
+        "Krig",
+        "Drama",
+        "Historie"
+      ],
+      "note": "Petter Næss' norske krigsdrama om to tyske og tre britiske flypiloter, der i 1940 efter at være skudt ned må dele en jagthytte i den norske vildmark.",
+      "poster": "https://images.justwatch.com/poster/339848804/s332/into-the-white.jpg",
+      "wiki": "Into the White",
+      "justwatch": "https://www.justwatch.com/dk/movie/into-the-white",
+      "stream": [],
+      "free": [],
+      "rent": [
+        {
+          "service": "Apple TV",
+          "price": 39
+        },
+        {
+          "service": "SF Anytime",
+          "price": 49
+        }
+      ],
+      "checked": "2026-11-16",
+      "added": "2026-11-16"
     }
   ]
 }
