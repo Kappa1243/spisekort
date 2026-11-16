@@ -121,6 +121,9 @@ dd{text-align:right}
 .field output{font-weight:600;font-variant-numeric:tabular-nums}
 select{font:inherit;color:var(--text);background:var(--panel-2);padding:7px 10px;border-radius:var(--r-sm);border:1px solid var(--line)}
 .fine{font-size:12.5px;color:var(--dim);margin-top:14px}
+.legend.small{margin:10px 0 0;font-size:13px}
+.legend .dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
+.near{margin-top:8px;font-size:14px;color:var(--soft);padding-left:12px;border-left:2px solid #4FC3F7}
 
 /* ---------- maplibre i mørkt ---------- */
 .maplibregl-ctrl-top-right{top:calc(60px + env(safe-area-inset-top))}
@@ -190,6 +193,14 @@ select{font:inherit;color:var(--text);background:var(--panel-2);padding:7px 10px
     <label class="toggle">Luftfoto <input type="checkbox" id="tSat"></label>
     <label class="toggle">Fredningszoner <input type="checkbox" id="tFred" checked></label>
     <label class="toggle" id="tVandRow">Vandkvalitet <input type="checkbox" id="tVand"></label>
+    <label class="toggle" id="tOerredRow">Havørred-vandløb <input type="checkbox" id="tOerred"></label>
+    <div class="legend small" id="oerredLegend">
+      <span><b class="dot" style="background:#9BE7FF"></b>Høj ørredyngel</span>
+      <span><b class="dot" style="background:#4FC3F7"></b>God</span>
+      <span><b class="dot" style="background:#2B7FB8"></b>Moderat</span>
+      <span><b class="dot" style="background:#3A4F66"></b>Dårlig</span>
+    </div>
+    <p class="fine" style="margin-top:6px">Havørred-vandløb er DTU Aquas Ørredkort: tætheden af ørredyngel ved ca. 5.600 målestationer i vandløb. Det påvirker ikke kystens farve.</p>
     <label class="toggle">Farver for farveblinde <input type="checkbox" id="tCb"></label>
 
     <div id="customBox">
@@ -214,11 +225,12 @@ select{font:inherit;color:var(--text);background:var(--panel-2);padding:7px 10px
       <li><b>Havtemperatur, lys, dybde og bund</b> trækker op eller ned for hver art.</li>
       <li><b>Vandkvalitet:</b> kystvande i dårlig økologisk tilstand bliver højst gule.</li>
       <li><b>Fredningsbælter</b> gælder på den valgte dato og overstyrer alt. Store og uklare zoner er kontrolleret mod bekendtgørelserne.</li>
+      <li><b>Havørred-vandløb</b> (DTU Aquas Ørredkort) vises som et lag og som en linje på svarkortet: hvor mange målestationer med god eller høj ørredyngel, der ligger inden for 10 km. Det er en indikator for, hvor havørreden kommer fra, ikke en optælling af fisk ved kysten, og det ændrer ikke kystens farve.</li>
       <li><b>Blink og pirk</b> er et forslag ud fra lys, skydække, uklart vand og bund. Det er lystfiskertradition, ikke målt viden.</li>
     </ul>
     <h3>Vigtigt</h3>
     <p>Kortet er et planlægningsværktøj. Det erstatter ikke de gældende regler, og vurderingerne er endnu ikke prøvet af mod fangster.</p>
-    <p class="fine">Data: OpenStreetMap-bidragydere (ODbL), Fiskeristyrelsen, Miljøstyrelsen, EMODnet Bathymetry og Geology (CC BY 4.0), Open-Meteo.com og DMI (CC BY 4.0), OpenFreeMap.</p>
+    <p class="fine">Data: OpenStreetMap-bidragydere (ODbL), Fiskeristyrelsen, Miljøstyrelsen, DTU Aqua (Ørredkortet), EMODnet Bathymetry og Geology (CC BY 4.0), Open-Meteo.com og DMI (CC BY 4.0), OpenFreeMap.</p>
   </div>
 </div>
 

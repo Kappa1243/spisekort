@@ -26,6 +26,7 @@ const PALETTES = {
   cb: { 3: "#56B4E9", 2: "#E69F00", 1: "#D55E00", 9: "#CC79A7", 0: "#5B6B7E" }, // Okabe-Ito, lyse varianter til mørk baggrund
 };
 const REG_COLOR = "#F2A65A";
+const OERRED_COLORS = { 4: "#9BE7FF", 3: "#4FC3F7", 2: "#2B7FB8", 1: "#3A4F66" };
 const LABELS = { 3: "God", 2: "Middel", 1: "Dårlig", 9: "Forbudt", 0: "Ukendt" };
 const DK_BOUNDS = [[8.0, 54.5], [15.2, 57.8]];
 const PAST_DAYS = 2, FORECAST_DAYS = 12; // i alt 14 døgn = ét Open-Meteo-kald pr. sted
@@ -44,7 +45,7 @@ const store = {
 const state = {
   species: store.get("species", "havorred"),
   custom: Object.assign({ min: 3, max: 8, lim: 12, dir: "on" }, store.get("custom", {})),
-  layers: Object.assign({ sat: false, fred: true, vand: false, cb: false }, store.get("layers", {})),
+  layers: Object.assign({ sat: false, fred: true, vand: false, cb: false, oerred: false }, store.get("layers", {})),
   coast: null, fred: null, vand: null, points: null, meta: null, fredError: null,
   ts: [], keys: [], N: 0, T: 0, sp: null, dr: null, gu: null, missing: 0,
   sst: null, sstGroup: null, sstError: null,
@@ -335,11 +336,12 @@ async function getJSON(url, optional = false) {
 }
 
 async function loadStatic() {
-  const [coast, points, meta, vand] = await Promise.all([
+  const [coast, points, meta, vand, oerred] = await Promise.all([
     getJSON("data/coast.geojson"), getJSON("data/windpoints.json"),
-    getJSON("data/meta.json", true), getJSON("data/vand.geojson", true),
+    getJSON("data/meta.json", true), getJSON("data/vand.geojson", true), getJSON("data/oerred.geojson", true),
   ]);
   state.coast = coast; state.points = points; state.meta = meta;
+  state.oerred = oerred && oerred.features && oerred.features.length ? oerred : null;
   try {
     const fred = await getJSON("data/fredning.geojson");
     if (!fred.features || !fred.features.length) throw new Error("tom fil");
@@ -599,6 +601,15 @@ function addLayers() {
     map.addLayer({ id: "fred-omr", type: "line", source: "fred", filter: ["==", ["get", "t"], "omr"], layout: vis,
       paint: { "line-color": REG_COLOR, "line-width": 1.2, "line-opacity": 0.6, "line-dasharray": [3, 2] } });
   }
+  if (state.oerred) {
+    // Ørredkortet: vandløbsstationer farvet efter yngeltæthed (DTU Aquas klasser).
+    map.addSource("oerred", { type: "geojson", data: state.oerred });
+    map.addLayer({ id: "oerred", type: "circle", source: "oerred", minzoom: 6.5, filter: [">=", ["get", "k"], 1],
+      layout: { visibility: state.layers.oerred ? "visible" : "none", "circle-sort-key": ["get", "k"] },
+      paint: { "circle-color": ["match", ["get", "k"], 4, OERRED_COLORS[4], 3, OERRED_COLORS[3], 2, OERRED_COLORS[2], OERRED_COLORS[1]],
+        "circle-radius": ["interpolate", ["linear"], ["zoom"], 7, ["match", ["get", "k"], 4, 3, 3, 2.6, 2, 2, 1.6], 12, ["match", ["get", "k"], 4, 7, 3, 6, 2, 5, 4]],
+        "circle-stroke-color": SEA, "circle-stroke-width": 1, "circle-opacity": 0.95 } });
+  }
   map.addSource("coast", { type: "geojson", data: state.coast, promoteId: "i", tolerance: 0.2 });
   // Zoom må kun stå øverst i et interpolate-udtryk, så hver bredde bygges som sit eget udtryk.
   const STOPS = [[6, 1.8], [9, 3.2], [12, 5.5], [15, 9]];
@@ -857,6 +868,13 @@ function renderCard() {
     if (Number.isFinite(r.sst)) why += ` Vandet er ${fmt(r.sst, 0)} °C.`;
   } else if (state.sp) why = "Der mangler vinddata for dette sted.";
   else why = "Henter vind …";
+  let near = "";
+  if ((state.species === "havorred" || state.species === "custom") && (pr.oh || pr.om)) {
+    const parts = [];
+    if (pr.oh) parts.push(`${pr.oh} ${pr.oh === 1 ? "station" : "stationer"} med god eller høj ørredyngel`);
+    if (pr.om) parts.push(`${pr.om} med moderat`);
+    near = `<p class="near">Gydevandløb inden for 10 km: ${parts.join(", ")} (DTU Aqua).</p>`;
+  }
 
   // Blink
   let lure = "";
@@ -901,12 +919,13 @@ function renderCard() {
   if (pr.d1 != null || pr.d2 != null) rows.push(["Dybde 150 / 400 m ude", `ca. ${pr.d1 != null ? fmt(pr.d1) : "–"} / ${pr.d2 != null ? fmt(pr.d2) : "–"} m`]);
   if (pr.s) rows.push(["Bund", SUBSTRATE[pr.s] || "–"]);
   if (r.vand) rows.push(["Vandkvalitet", `${esc(r.vand.label || "Ukendt")}${r.vand.n ? ` (${esc(r.vand.n)})` : ""}`]);
+  if (pr.oh || pr.om) rows.push(["Ørredvandløb inden for 10 km", `${pr.oh || 0} gode/høje, ${pr.om || 0} moderate`]);
   const details = rows.length ? `<details><summary>Detaljer</summary><dl>${rows.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl></details>` : "";
 
   el.innerHTML = `<div class="card-head"><div><div class="verdict" style="color:${c[r.cls]}">${LABELS[r.cls]}</div>` +
     `<div class="for">for ${esc(profile().name.toLowerCase())}, ${esc(when)}</div></div>` +
     `<button class="close" id="closeCard" aria-label="Luk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>` +
-    `<p class="why">${esc(why)}</p>${lure}${chips}${rules.length ? `<div class="rules">${rules.join("")}</div>` : ""}${details}`;
+    `<p class="why">${esc(why)}</p>${near}${lure}${chips}${rules.length ? `<div class="rules">${rules.join("")}</div>` : ""}${details}`;
   el.hidden = false;
   $("closeCard").onclick = () => select(null);
   syncDockHeight();
@@ -936,7 +955,7 @@ function bindUI() {
   $("sheet").addEventListener("click", (e) => { if (e.target === $("sheet")) closeSheet(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if ($("sheet").classList.contains("open")) closeSheet(); else if (sel) select(null); } });
 
-  const toggles = { tSat: ["sat", ["sat"]], tFred: ["fred", ["fred-fill", "fred-line", "fred-omr"]], tVand: ["vand", ["vand"]] };
+  const toggles = { tSat: ["sat", ["sat"]], tFred: ["fred", ["fred-fill", "fred-line", "fred-omr"]], tVand: ["vand", ["vand"]], tOerred: ["oerred", ["oerred"]] };
   for (const [id, [key, layers]] of Object.entries(toggles)) {
     $(id).checked = !!state.layers[key];
     $(id).addEventListener("change", (e) => { state.layers[key] = e.target.checked; store.set("layers", state.layers); layers.forEach((l) => setVis(l, e.target.checked)); });
@@ -977,6 +996,7 @@ async function main() {
     return;
   }
   if (!state.vand) $("tVandRow").classList.add("off");
+  if (!state.oerred) { $("tOerredRow").classList.add("off"); $("tOerred").disabled = true; }
   const m = state.meta;
   if (m) $("metaInfo").textContent = `Kortdata er bygget ${new Date(m.built).toLocaleDateString("da-DK", { day: "numeric", month: "long", year: "numeric" })} og dækker ${(m.counts.segments || 0).toLocaleString("da-DK")} kyststrækninger og ${m.counts.fredning || 0} fredningszoner.`;
   await initMap();

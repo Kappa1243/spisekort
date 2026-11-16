@@ -947,35 +947,52 @@ def wms_all_features(layer, bbox=BBOX, max_features=20000):
     return r.json().get("features", [])
 
 
-def discover_oerred():
-    """Find Ørredkortets lag på DTU Aquas GeoServer og gem en stikprøve af felterne."""
-    out = {}
-    for ep in OERRED_EPS:
-        try:
-            r = get(ep, params={"service": "WFS", "version": "2.0.0", "request": "GetCapabilities"}, timeout=45, tries=1)
-            out[ep] = {"status": r.status_code, "head": r.text[:400]}
-        except Exception as e:  # noqa: BLE001
-            out[ep] = {"error": str(e)[:300]}
+OERRED_LAYER = "pnemo:trout"
+# DTU Aquas klasser for ørredyngel pr. 100 m² (Ørredkortet): høj >130, god 80-130, moderat 40-79, dårlig 1-39, 0 = ingen yngel.
+OERRED_CLASSES = [(130.0001, 4), (80, 3), (40, 2), (1, 1)]
+OERRED_RADIUS = 10000  # m: vandløb inden for denne afstand af en kyststrækning tælles med
+
+
+def oerred_class(d):
     try:
-        names, text = wms_layers(OERRED_WMS)
-        out["wms"] = {"n_layers": len(names), "layers": names[:150], "head": text[:300] if not names else ""}
-        hits = [(n, t) for n, t in names if re.search(r"(ø|oe|o)rred|yngel|trout|laks|fiskepleje|station", n + " " + t, re.I)]
-        out["wms"]["hits"] = hits
-        for n, t in hits[:3]:
-            try:
-                feats = wms_all_features(n)
-                props = [f.get("properties") or {} for f in feats]
-                keys = sorted({k for p in props for k in p})
-                out["wms"].setdefault("samples", {})[n] = {
-                    "title": t, "count": len(feats),
-                    "geom": sorted({(f.get("geometry") or {}).get("type", "?") for f in feats}),
-                    "fields": keys, "distinct": {k: sorted({str(p.get(k))[:50] for p in props})[:20] for k in keys},
-                    "sample": props[:3], "coords": [(f.get("geometry") or {}).get("coordinates") for f in feats[:2]]}
-            except Exception as e:  # noqa: BLE001
-                out["wms"].setdefault("samples", {})[n] = {"error": str(e)[:300]}
-    except Exception as e:  # noqa: BLE001
-        out["wms"] = {"error": str(e)[:300]}
-    DISCOVERY["oerred"] = out
+        d = float(d)
+    except (TypeError, ValueError):
+        return -1
+    for lo, k in OERRED_CLASSES:
+        if d >= lo:
+            return k
+    return 0
+
+
+def fetch_oerred():
+    """Ørredkortet (DTU Aqua): yngeltæthed ved ~5.600 stationer i vandløb, via WMS GetFeatureInfo
+    på et 1x1-billede over hele Danmark i UTM (så koordinaterne kun afrundes til hele meter)."""
+    x0, y0 = TO_UTM.transform(BBOX[0], BBOX[1])
+    x1, y1 = TO_UTM.transform(BBOX[2], BBOX[3])
+    r = get(OERRED_WMS, params={
+        "service": "WMS", "version": "1.1.1", "request": "GetFeatureInfo", "layers": OERRED_LAYER,
+        "query_layers": OERRED_LAYER, "styles": "", "srs": "EPSG:25832",
+        "bbox": f"{min(x0, x1) - 60000:.0f},{min(y0, y1):.0f},{max(x0, x1) + 60000:.0f},{max(y0, y1):.0f}",
+        "width": 1, "height": 1, "x": 0, "y": 0, "info_format": "application/json",
+        "feature_count": 20000, "buffer": 5000}, timeout=900, tries=2)
+    feats = r.json().get("features", [])
+    out = []
+    for f in feats:
+        g = f.get("geometry") or {}
+        if g.get("type") != "Point":
+            continue
+        x, y = g["coordinates"][:2]
+        if abs(x) < 1000:  # kom tilbage i grader – afvis (for grov)
+            continue
+        p = f.get("properties") or {}
+        lon, lat = TO_WGS.transform(x, y)
+        k = oerred_class(p.get("dens_m2"))
+        out.append({"x": x, "y": y, "lon": lon, "lat": lat, "k": k, "d": p.get("dens_m2"),
+                    "n": str(p.get("vs_navn") or "")[:60], "yr": str(p.get("dato") or "")[:4], "w": p.get("bredde")})
+    DISCOVERY["oerred"] = {"features": len(feats), "kept": len(out),
+                           "classes": {k: sum(1 for o in out if o["k"] == k) for k in range(-1, 5)}}
+    log(f"Ørredkort: {len(out)} stationer {DISCOVERY['oerred']['classes']}")
+    return out
 
 
 # ---------------------------------------------------------------- main
@@ -1021,11 +1038,16 @@ def main():
             errors.append("vand")
             log("FEJL VP3:\n" + traceback.format_exc())
 
+    # Ørredkortet er et ekstra lag: fejler det, beholdes den forrige fil, og resten bygges som normalt.
+    oerred = []
     if not a.skip_remote:
         try:
-            discover_oerred()
+            oerred = fetch_oerred()
+            if len(oerred) < 1000:
+                raise RuntimeError(f"kun {len(oerred)} stationer")
         except Exception:  # noqa: BLE001
-            log("FEJL ørredkort-discovery:\n" + traceback.format_exc())
+            oerred = []
+            log("ADVARSEL ørredkort (beholder forrige data):\n" + traceback.format_exc())
 
     # 3) kyst
     feats, wind = [], []
@@ -1050,6 +1072,15 @@ def main():
                 near = vtree.query_nearest(Point(*_offset(s, 200)), max_distance=3000)
                 if len(near):
                     s["w"] = int(near[0])
+        if oerred:
+            pts = [Point(o["x"], o["y"]) for o in oerred]
+            otree = shapely.STRtree(pts)
+            for s in segs:
+                hits = otree.query(s["mid"], predicate="dwithin", distance=OERRED_RADIUS)
+                good = sum(1 for h in hits if oerred[int(h)]["k"] >= 3)
+                mod = sum(1 for h in hits if oerred[int(h)]["k"] == 2)
+                if good or mod:
+                    s["oh"], s["om"] = good, mod
         wind = build_windpoints(segs, water)
         if not a.skip_remote:
             place_quality(segs, cache)
@@ -1057,7 +1088,7 @@ def main():
 
         for i, s in enumerate(segs):
             props = {"i": i, "b": s["b"], "g": s["g"]}
-            for k in ("f", "w", "d1", "d2", "s", "nb"):
+            for k in ("f", "w", "d1", "d2", "s", "nb", "oh", "om"):
                 if k in s:
                     props[k] = s[k]
             gw = transform(TO_WGS.transform, s["geom"].simplify(8))
@@ -1088,6 +1119,12 @@ def main():
         return 1
     files = {"coast.geojson": {"type": "FeatureCollection", "features": feats},
              "windpoints.json": wind, "meta.json": meta}
+    if oerred:
+        files["oerred.geojson"] = {"type": "FeatureCollection", "features": [
+            {"type": "Feature", "geometry": {"type": "Point", "coordinates": [round(o["lon"], 5), round(o["lat"], 5)]},
+             "properties": {"k": o["k"], "d": o["d"], "n": o["n"], "yr": o["yr"]}} for o in oerred]}
+        meta["counts"]["oerred"] = len(oerred)
+        meta["sources"]["oerred"] = "DTU Aqua, Ørredkortet (yngeltæthed i vandløb)"
     if not a.skip_remote:
         files["fredning.geojson"] = {"type": "FeatureCollection", "features": fred_feats}
         files["vand.geojson"] = {"type": "FeatureCollection", "features": vand_feats}
