@@ -932,7 +932,7 @@ OERRED_WMS = "https://geoserver.telemetry.fish/geoserver/wms"
 
 
 def wms_layers(ep):
-    r = get(ep, params={"service": "WMS", "version": "1.3.0", "request": "GetCapabilities"}, timeout=180, tries=2)
+    r = get(ep, params={"service": "WMS", "version": "1.3.0", "request": "GetCapabilities"}, timeout=60, tries=1)
     return re.findall(r"<Layer[^>]*>\s*<Name>([^<]+)</Name>\s*<Title>([^<]*)</Title>", r.text), r.text
 
 
@@ -943,7 +943,7 @@ def wms_all_features(layer, bbox=BBOX, max_features=20000):
         "service": "WMS", "version": "1.1.1", "request": "GetFeatureInfo", "layers": layer, "query_layers": layer,
         "styles": "", "srs": "EPSG:4326", "bbox": f"{lon0},{lat0},{lon1},{lat1}", "width": 1, "height": 1,
         "x": 0, "y": 0, "info_format": "application/json", "feature_count": max_features,
-        "buffer": 5000}, timeout=600, tries=2)
+        "buffer": 5000}, timeout=150, tries=1)
     return r.json().get("features", [])
 
 
@@ -952,7 +952,7 @@ def discover_oerred():
     out = {}
     for ep in OERRED_EPS:
         try:
-            r = get(ep, params={"service": "WFS", "version": "2.0.0", "request": "GetCapabilities"}, timeout=120, tries=1)
+            r = get(ep, params={"service": "WFS", "version": "2.0.0", "request": "GetCapabilities"}, timeout=45, tries=1)
             out[ep] = {"status": r.status_code, "head": r.text[:400]}
         except Exception as e:  # noqa: BLE001
             out[ep] = {"error": str(e)[:300]}
@@ -961,7 +961,7 @@ def discover_oerred():
         out["wms"] = {"n_layers": len(names), "layers": names[:150], "head": text[:300] if not names else ""}
         hits = [(n, t) for n, t in names if re.search(r"(ø|oe|o)rred|yngel|trout|laks|fiskepleje|station", n + " " + t, re.I)]
         out["wms"]["hits"] = hits
-        for n, t in hits[:6]:
+        for n, t in hits[:3]:
             try:
                 feats = wms_all_features(n)
                 props = [f.get("properties") or {} for f in feats]
