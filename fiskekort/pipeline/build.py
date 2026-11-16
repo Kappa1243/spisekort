@@ -342,13 +342,53 @@ def collect_arcgis_layers(oplayers, out, prefix=""):
             collect_arcgis_layers(ol["layers"], out, title)
 
 
+FRED_RE = re.compile(r"fredning|fredede|fiskeri.?forbud|fredningsb", re.I)
+
+
+def arcgis_search(q):
+    j = arcgis_json("https://www.arcgis.com/sharing/rest/search", {"q": q, "num": 100})
+    return j.get("results", [])
+
+
 def fetch_fredning():
-    app = arcgis_item_data(FRED_APP_ID)
-    map_id = (app.get("map") or {}).get("itemId")
-    DISCOVERY["fred_app_map_id"] = map_id
-    webmap = arcgis_item_data(map_id) if map_id else app
     layers: list = []
-    collect_arcgis_layers(webmap.get("operationalLayers"), layers)
+    errors = []
+    # a) Fiskeristyrelsens web-app (link fra fiskepleje.dk)
+    try:
+        app = arcgis_item_data(FRED_APP_ID)
+        map_id = (app.get("map") or {}).get("itemId")
+        DISCOVERY["fred_app_map_id"] = map_id
+        webmap = arcgis_item_data(map_id) if map_id else app
+        collect_arcgis_layers(webmap.get("operationalLayers"), layers)
+    except Exception as e:  # noqa: BLE001
+        errors.append(f"app: {e}"[:300])
+    # b) søg efter offentlige ArcGIS-elementer
+    if not layers:
+        found = []
+        for q in ("fredningsbælter", "fredningsbaelter", "fredningsbælte", "fredningszoner fiskeri",
+                  "Fiskeristyrelsen", "LFST fiskeri"):
+            try:
+                for it in arcgis_search(q):
+                    if it["id"] not in {f["id"] for f in found}:
+                        found.append({k: it.get(k) for k in ("id", "title", "type", "owner", "url", "access")})
+            except Exception as e:  # noqa: BLE001
+                errors.append(f"search {q}: {e}"[:200])
+        DISCOVERY["fred_search"] = found
+        for it in found:
+            if not FRED_RE.search(it.get("title") or ""):
+                continue
+            try:
+                if it["type"] in ("Feature Service", "Map Service") and it.get("url"):
+                    collect_arcgis_layers([{"url": it["url"], "title": it["title"]}], layers)
+                elif it["type"] in ("Web Map", "Web Mapping Application"):
+                    d = arcgis_item_data(it["id"])
+                    if it["type"] == "Web Mapping Application":
+                        mid = (d.get("map") or {}).get("itemId") or ((d.get("values") or {}).get("webmap"))
+                        d = arcgis_item_data(mid) if mid else {}
+                    collect_arcgis_layers(d.get("operationalLayers"), layers, it["title"])
+            except Exception as e:  # noqa: BLE001
+                errors.append(f"{it['title']}: {e}"[:300])
+    DISCOVERY["fred_errors"] = errors
     DISCOVERY["fred_layers"] = [
         {"title": l["title"], "src": l["src"], "error": l.get("error"), **summarize(l["feats"])}
         for l in layers]
@@ -392,7 +432,103 @@ def build_fredning(layers):
     return feats
 
 
-# ---------------------------------------------------------------- VP3
+# ---------------------------------------------------------------- GeoServer discovery
+GEOSERVERS = [
+    "https://geodata.fvm.dk/geoserver/ows",
+    "https://arealeditering-dist-geo.miljoeportal.dk/geoserver/wfs",
+    "https://wfs2-miljoegis.mim.dk/ows",
+]
+
+
+def wfs_layers(ep):
+    r = get(ep, params={"service": "WFS", "version": "2.0.0", "request": "GetCapabilities"},
+            timeout=180, tries=2)
+    return re.findall(r"<(?:wfs:)?Name>([^<]+)</(?:wfs:)?Name>\s*<(?:wfs:)?Title>([^<]*)<", r.text)
+
+
+def discover_geoservers():
+    out = []
+    for ep in GEOSERVERS:
+        try:
+            names = wfs_layers(ep)
+            hit = [(n, t) for n, t in names
+                   if re.search(r"fredning|fiskeri|b(æ|ae)lte|reservat|fisk", n + " " + t, re.I)]
+            out.append({"endpoint": ep, "n_layers": len(names), "hits": hit[:60]})
+        except Exception as e:  # noqa: BLE001
+            out.append({"endpoint": ep, "error": str(e)[:200]})
+    DISCOVERY["geoservers"] = out
+
+
+def wfs_get_all(ep, typename, page=1000):
+    feats, start = [], 0
+    while True:
+        r = get(ep, params={"service": "WFS", "version": "2.0.0", "request": "GetFeature",
+                            "typeNames": typename, "outputFormat": "application/json",
+                            "srsName": "EPSG:4326", "count": page, "startIndex": start},
+                timeout=300, tries=3)
+        j = r.json()
+        batch = j.get("features", [])
+        feats.extend(batch)
+        if len(batch) < page:
+            return feats
+        start += page
+
+
+# ---------------------------------------------------------------- VP3 vandkvalitet
+VP3_EP = "https://wfs2-miljoegis.mim.dk/vp3endelig2022/ows"
+VP3_LAYER = "vp3endelig2022:vp3e2022_marin_samlet"
+STATUS_WORDS = {"høj": 5, "god": 4, "moderat": 3, "ringe": 2, "dårlig": 1}
+STATUS_COLORS = {5: "#2563eb", 4: "#16a34a", 3: "#eab308", 2: "#f97316", 1: "#dc2626", 0: "#94a3b8"}
+
+
+def status_code(v):
+    if v is None:
+        return 0
+    t = str(v).strip().lower()
+    for w, c in STATUS_WORDS.items():
+        if t.startswith(w) or f" {w}" in f" {t}":
+            return c
+    return 0
+
+
+def build_vand():
+    feats = wfs_get_all(VP3_EP, VP3_LAYER)
+    props = [f.get("properties") or {} for f in feats]
+    keys = sorted({k for p in props for k in p})
+    distinct = {k: sorted({str(p.get(k))[:60] for p in props})[:25] for k in keys}
+    DISCOVERY["vp3_layer"] = {"layer": VP3_LAYER, "count": len(feats), "fields": keys,
+                              "distinct": distinct, "sample": props[:2]}
+    # find felter med tilstandsklasser
+    status_fields = [k for k in keys
+                     if sum(status_code(p.get(k)) > 0 for p in props) > 0.3 * len(props)]
+    DISCOVERY["vp3_status_fields"] = status_fields
+    pref = [k for k in status_fields if re.search(r"oko|øko|samlet|eco", k, re.I)]
+    main_field = (pref or status_fields or [None])[0]
+    name_field = next((k for k in keys if re.search(r"navn|name", k, re.I)), None)
+    out = []
+    for f, p in zip(feats, props):
+        g = shape(f["geometry"]) if f.get("geometry") else None
+        if g is None or g.is_empty:
+            continue
+        code = status_code(p.get(main_field)) if main_field else 0
+        g = g.simplify(0.0004, preserve_topology=True)
+        gj = json.loads(json.dumps(mapping(g)))
+        if gj["type"] == "Polygon":
+            gj["coordinates"] = [rnd(r, 4) for r in gj["coordinates"]]
+        elif gj["type"] == "MultiPolygon":
+            gj["coordinates"] = [[rnd(r, 4) for r in poly] for poly in gj["coordinates"]]
+        else:
+            continue
+        details = {k: p.get(k) for k in status_fields if k != main_field and p.get(k) not in (None, "")}
+        out.append({"type": "Feature", "properties": {
+            "id": len(out), "n": str(p.get(name_field) or "")[:100],
+            "code": code, "label": str(p.get(main_field) or "Ukendt")[:60],
+            "cap": 2 if code in (1, 2) else None, "color": STATUS_COLORS[code],
+            "d": details}, "geometry": gj})
+    DISCOVERY["vp3_main_field"] = main_field
+    return out
+
+
 def discover_vp3():
     found = []
     for ep in VP3_ENDPOINTS:
@@ -451,7 +587,15 @@ def main():
         except Exception:  # noqa: BLE001
             log("FEJL fredningsbælter:\n" + traceback.format_exc())
         try:
-            discover_vp3()
+            discover_geoservers()
+        except Exception:  # noqa: BLE001
+            log("FEJL geoserver-discovery:\n" + traceback.format_exc())
+    vand_feats = []
+    if not a.skip_remote:
+        try:
+            vand_feats = build_vand()
+            meta["sources"]["vand"] = "Miljøstyrelsen, vandområdeplaner 2021-2027 (VP3), kystvande"
+            log(f"Kystvandområder: {len(vand_feats)} (felt: {DISCOVERY.get('vp3_main_field')})")
         except Exception:  # noqa: BLE001
             log("FEJL VP3:\n" + traceback.format_exc())
 
@@ -465,6 +609,9 @@ def main():
         zones_utm = [transform(TO_UTM.transform, shape(f["geometry"])) for f in fred_feats]
         tree = shapely.STRtree(zones_utm) if zones_utm else None
 
+        vand_utm = [transform(TO_UTM.transform, shape(f["geometry"])) for f in vand_feats]
+        vtree = shapely.STRtree(vand_utm) if vand_utm else None
+
         feats = []
         for i, s in enumerate(segs):
             g = s["geom"]
@@ -473,6 +620,15 @@ def main():
                 hits = tree.query(g, predicate="intersects")
                 if len(hits):
                     props["f"] = sorted(int(h) for h in hits)
+            if vtree is not None:
+                m = s["mid"]
+                probe = m
+                if s["b"] >= 0:
+                    ang = math.radians(s["b"])
+                    probe = Point(m.x + 200 * math.sin(ang), m.y + 200 * math.cos(ang))
+                near = vtree.query_nearest(probe, max_distance=3000)
+                if len(near):
+                    props["w"] = int(near[0])
             gw = transform(TO_WGS.transform, g.simplify(8))
             feats.append({"type": "Feature", "properties": props,
                           "geometry": {"type": "LineString", "coordinates": rnd(gw.coords)}})
@@ -485,6 +641,9 @@ def main():
         ok = False
         log("FEJL kyst:\n" + traceback.format_exc())
 
+    if vand_feats:
+        write_json(out / "vand.geojson", {"type": "FeatureCollection", "features": vand_feats})
+    meta["counts"]["vand"] = len(vand_feats)
     if fred_feats or not (out / "fredning.geojson").exists():
         write_json(out / "fredning.geojson", {"type": "FeatureCollection", "features": fred_feats})
     meta["counts"]["fredning"] = len(fred_feats)
