@@ -921,6 +921,45 @@ def place_quality(segs, cache: Path):
         log("FEJL bundtype:\n" + traceback.format_exc())
 
 
+# ---------------------------------------------------------------- Ørredkortet (DTU Aqua)
+OERRED_EPS = [
+    "https://geoserver.telemetry.fish/geoserver/wfs",
+    "https://geoserver.telemetry.fish/geoserver/ows",
+]
+
+
+def discover_oerred():
+    """Find Ørredkortets lag på DTU Aquas GeoServer og gem en stikprøve af felterne."""
+    out = {}
+    for ep in OERRED_EPS:
+        try:
+            names = wfs_layers(ep)
+            out[ep] = {"n_layers": len(names), "layers": names[:120]}
+            hits = [(n, t) for n, t in names if re.search(r"(ø|oe|o)rred|yngel|trout|fiskepleje|station", n + " " + t, re.I)]
+            out[ep]["hits"] = hits
+            for n, t in hits[:6]:
+                try:
+                    r = get(ep, params={"service": "WFS", "version": "2.0.0", "request": "GetFeature", "typeNames": n,
+                                        "outputFormat": "application/json", "srsName": "EPSG:4326", "count": 2000},
+                            timeout=300, tries=2)
+                    j = r.json()
+                    feats = j.get("features", [])
+                    props = [f.get("properties") or {} for f in feats]
+                    keys = sorted({k for p in props for k in p})
+                    out[ep].setdefault("samples", {})[n] = {
+                        "title": t, "count": len(feats), "total": j.get("totalFeatures") or j.get("numberMatched"),
+                        "geom": sorted({(f.get("geometry") or {}).get("type", "?") for f in feats}),
+                        "fields": keys,
+                        "distinct": {k: sorted({str(p.get(k))[:50] for p in props})[:20] for k in keys},
+                        "sample": props[:3]}
+                except Exception as e:  # noqa: BLE001
+                    out[ep].setdefault("samples", {})[n] = {"error": str(e)[:300]}
+            break
+        except Exception as e:  # noqa: BLE001
+            out[ep] = {"error": str(e)[:300]}
+    DISCOVERY["oerred"] = out
+
+
 # ---------------------------------------------------------------- main
 def main():
     ap = argparse.ArgumentParser()
@@ -963,6 +1002,12 @@ def main():
         except Exception:  # noqa: BLE001
             errors.append("vand")
             log("FEJL VP3:\n" + traceback.format_exc())
+
+    if not a.skip_remote:
+        try:
+            discover_oerred()
+        except Exception:  # noqa: BLE001
+            log("FEJL ørredkort-discovery:\n" + traceback.format_exc())
 
     # 3) kyst
     feats, wind = [], []
