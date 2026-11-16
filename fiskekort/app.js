@@ -29,7 +29,7 @@ const LABELS = { 3: "God", 2: "Middel", 1: "Dårlig", 9: "Fiskeri forbudt", 0: "
 const DK_BOUNDS = [[8.0, 54.5], [15.2, 57.8]];
 const PAST_DAYS = 2, FORECAST_DAYS = 12; // i alt 14 døgn = ét Open-Meteo-kald pr. sted
 const BATCH = 80;
-const CACHE_KEY = "wx-v3", CACHE_MIN = 45;
+const CACHE_KEY = "wx-v4", CACHE_MIN = 45;
 const SUBSTRATE = { 5: "Sten/klippe", 3: "Grus/groft", 4: "Blandet", 2: "Sand", 1: "Mudder" };
 const VQ = { 5: "Høj", 4: "God", 3: "Moderat", 2: "Ringe", 1: "Dårlig", 0: "–" };
 const MONTH_NAMES = ["", "jan", "feb", "mar", "apr", "maj", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
@@ -284,6 +284,48 @@ function evaluate(f, t, opts = {}) {
   return finish();
 }
 
+// ------------------------------------------------------------------ blinkfarve (tommelfingerregler)
+// Lystfiskertradition, ikke målt viden – påvirker ikke scoren.
+const LURE_COLORS = {
+  sølv: "#cbd5e1", blå: "#2563eb", sort: "#111827", grøn: "#16a34a", kobber: "#b45309", guld: "#d4a017",
+  orange: "#f97316", chartreuse: "#c6f432", rød: "#dc2626", hvid: "#f8fafc", glow: "#bef264",
+};
+function lureAdvice(species, c) {
+  // c: { light, cloud, murky, green, s, sst, d2 }
+  const cold = Number.isFinite(c.sst) && c.sst < 5;
+  const grey = Number.isFinite(c.cloud) && c.cloud >= 70;
+  const sunny = Number.isFinite(c.cloud) && c.cloud < 40;
+  let a;
+  if (species === "fladfisk") {
+    if (c.light !== "day") a = { what: "Pirk i hvid eller selvlysende (glow)", sw: ["hvid", "glow"], why: "I mørke og skumring ses lyse og selvlysende pirke bedst." };
+    else if (c.murky) a = { what: "Pirk i rød/orange eller selvlysende", sw: ["rød", "orange", "glow"], why: "Uklart vand: kraftige farver og selvlys giver kontrast." };
+    else if (c.d2 >= 4) a = { what: "Pirk i hvid, rød/hvid eller sølv", sw: ["hvid", "rød", "sølv"], why: "Dybere vand mister rødt lys hurtigt – hvid og sølv står bedst." };
+    else a = { what: "Pirk i rød/sort eller hvid", sw: ["rød", "sort", "hvid"], why: "Klassisk torskepirk i dagslys." };
+    a.title = "Pirk (gæt)";
+    return a;
+  }
+  if (species === "hornfisk") {
+    if (c.light === "night") a = { what: "Fisk hellere i dagslys", sw: [], why: "Hornfisk jager efter synet." };
+    else if (c.murky) a = { what: "Slankt blink i sølv med orange/rød", sw: ["sølv", "orange", "rød"], why: "Uklart vand: lidt kraftig farve giver kontrast." };
+    else if (grey) a = { what: "Slankt blink i sølv/blå med fluo-detalje", sw: ["sølv", "blå", "chartreuse"], why: "Gråvejr: lidt mere farve end i sol." };
+    else a = { what: "Slankt blink i sølv/blå eller sølv/grøn", sw: ["sølv", "blå", "grøn"], why: "Hornfisk tager næsten altid de klassiske, slanke sølvblink." };
+    a.title = "Blink (gæt)";
+    return a;
+  }
+  // havørred (og "Generelt")
+  if (c.light === "night") a = { what: "Sort eller mørk kobber", sw: ["sort", "kobber"], why: "I mørke ses blinket bedst som silhuet mod himlen." };
+  else if (c.light === "dusk") a = { what: "Mørk kobber eller sort/sølv", sw: ["kobber", "sort", "sølv"], why: "Svagt lys: en mørk silhuet med lidt glans." };
+  else if (c.murky) a = { what: "Orange, chartreuse eller fluo", sw: ["orange", "chartreuse"], why: "Uklart vand efter hård vind: kraftige farver ses på længere afstand." };
+  else if (c.green) a = { what: grey ? "Orange eller guld" : "Kobber, guld eller chartreuse", sw: grey ? ["orange", "guld"] : ["kobber", "guld", "chartreuse"], why: "Sommer i et kystvand med meget klorofyl (Miljøstyrelsen: ringe/dårlig) – vandet er ofte grønt, og varme farver og fluo står bedre end blå." };
+  else if (grey) a = { what: "Kobber, guld eller sølv med orange", sw: ["kobber", "guld", "orange"], why: "Gråvejr: mere farve og glans end i sol." };
+  else if (sunny && c.s === 2) a = { what: "Sølv/grøn (tobis-agtig)", sw: ["sølv", "grøn"], why: "Klart vand, sol og sandbund: diskret og naturligt, som en tobis." };
+  else if (sunny) a = { what: "Sølv/blå eller sølv/sort", sw: ["sølv", "blå", "sort"], why: "Klart vand og sol: diskrete, naturlige farver." };
+  else a = { what: "Sølv/blå med lidt kobber", sw: ["sølv", "blå", "kobber"], why: "Halvskyet: en mellemting mellem diskret og farverig." };
+  if (cold && c.light === "day" && !c.murky) { a.what += " – eller orange/rød"; a.sw = a.sw.concat(["orange"]); a.why += " Koldt vand: mange vælger mere farve og fører blinket langsomt."; }
+  a.title = "Blink (gæt)";
+  return a;
+}
+
 // ------------------------------------------------------------------ data
 async function getJSON(url, optional = false) {
   const r = await fetch(url, { cache: "no-cache" });
@@ -387,17 +429,17 @@ async function loadWeather() {
   const cached = store.get(CACHE_KEY, null);
   if (cached && cached.sig === sig && Date.now() - cached.at < CACHE_MIN * 60e3) {
     Object.assign(state, { ts: cached.ts, keys: cached.ts.map((x) => dkKey(x * 1000)), T: cached.ts.length, N: pts.length,
-      sp: unpack(cached.sp, 10), dr: unpack(cached.dr, 1), gu: unpack(cached.gu, 10),
+      sp: unpack(cached.sp, 10), dr: unpack(cached.dr, 1), gu: unpack(cached.gu, 10), cc: cached.cc ? unpack(cached.cc, 1) : null,
       sst: cached.sst ? unpack(cached.sst, 10) : null, windAt: new Date(cached.at), missing: cached.missing || 0, sstError: cached.sstError || null });
     return;
   }
   const wind = await fetchPoints("https://api.open-meteo.com/v1/forecast", pts,
-    "wind_speed_10m,wind_direction_10m,wind_gusts_10m",
+    "wind_speed_10m,wind_direction_10m,wind_gusts_10m,cloud_cover",
     { wind_speed_unit: "ms", past_days: String(PAST_DAYS), forecast_days: String(FORECAST_DAYS) });
   const ref = wind.out.find((l) => l && l.hourly && l.hourly.time);
   if (!ref) throw wind.err || new Error("ingen data");
   const ts = ref.hourly.time;
-  const [sp, dr, gu] = fillArrays(wind.out, ["wind_speed_10m", "wind_direction_10m", "wind_gusts_10m"], ts);
+  const [sp, dr, gu, cc] = fillArrays(wind.out, ["wind_speed_10m", "wind_direction_10m", "wind_gusts_10m", "cloud_cover"], ts);
   const missing = wind.out.filter((l) => !l).length;
 
   let sst = null, sstError = null;
@@ -426,8 +468,8 @@ async function loadWeather() {
     if (!has.some(Boolean)) { sst = null; sstError = "ingen data"; }
   } catch (e) { sstError = e.message || String(e); }
 
-  Object.assign(state, { ts, keys: ts.map((x) => dkKey(x * 1000)), T: ts.length, N: pts.length, sp, dr, gu, sst, missing, sstError, windAt: new Date() });
-  store.set(CACHE_KEY, { at: Date.now(), sig, ts, sp: pack(sp, 10), dr: pack(dr, 1), gu: pack(gu, 10), sst: sst ? pack(sst, 10) : null, missing, sstError });
+  Object.assign(state, { ts, keys: ts.map((x) => dkKey(x * 1000)), T: ts.length, N: pts.length, sp, dr, gu, cc, sst, missing, sstError, windAt: new Date() });
+  store.set(CACHE_KEY, { at: Date.now(), sig, ts, sp: pack(sp, 10), dr: pack(dr, 1), gu: pack(gu, 10), cc: pack(cc, 1), sst: sst ? pack(sst, 10) : null, missing, sstError });
 }
 
 // ------------------------------------------------------------------ dage
@@ -642,6 +684,8 @@ function popupHTML(f) {
   if (r.light) rows.push(["Lys", LIGHT_LABEL[r.light]]);
   if (pr.d1 != null || pr.d2 != null) rows.push(["Dybde (ca.)", `${pr.d1 != null ? fmt(pr.d1) + " m" : "–"} 150 m ude · ${pr.d2 != null ? fmt(pr.d2) + " m" : "–"} 400 m ude`]);
   if (pr.s) rows.push(["Bund", SUBSTRATE[pr.s] || "–"]);
+  const cloud = state.cc && t >= 0 && pr.g != null ? state.cc[pr.g * state.T + t] : NaN;
+  if (Number.isFinite(cloud)) rows.push(["Skydække", `${Math.round(cloud)} %`]);
   if (r.score != null && !r.banned) rows.push(["Score", `${fmt(r.score * 100, 0)} / 100`]);
   if (r.vand) {
     rows.push(["Vandkvalitet", `${esc(r.vand.label || "Ukendt")}${r.vand.n ? ` <span class="muted">· ${esc(r.vand.n)}</span>` : ""}`]);
@@ -668,9 +712,21 @@ function popupHTML(f) {
     extra += `<div class="${active ? "ban" : "note"}">${txt}</div>`;
   }
   for (const n of r.notes) extra += `<div class="note">${esc(n)}</div>`;
+  let lureHTML = "";
+  if (r.v != null && !r.banned) {
+    const pt = state.points[pr.g];
+    const light = r.light || (t >= 0 && pt ? lightPhase(sunElevation(state.ts[t] * 1000, pt[1], pt[0])) : "day");
+    const vq = r.vand;
+    const lure = lureAdvice(state.species, { light, cloud, murky: r.murky != null && r.murky >= 8,
+      // Klorofyl-vurderingen bygger på sommermålinger, så "grønt vand" bruges kun maj–september.
+      green: !!(vq && (vq.fy === 1 || vq.fy === 2)) && [5, 6, 7, 8, 9].includes(+dateOfT(t).slice(5, 7)),
+      s: pr.s, sst: r.sst, d2: pr.d2 });
+    const sw = lure.sw.map((k) => `<i class="sw" title="${esc(k)}" style="background:${LURE_COLORS[k]}"></i>`).join("");
+    lureHTML = `<div class="lure"><div class="lt">${esc(lure.title)}</div><div class="lw">${sw}<b>${esc(lure.what)}</b></div><div class="muted">${esc(lure.why)}</div></div>`;
+  }
   const when = t >= 0 ? new Date(state.ts[t] * 1000).toLocaleString("da-DK", { timeZone: "Europe/Copenhagen", weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
   return `<div class="pop"><h3><span class="dot" style="background:${c[r.cls]}"></span>${LABELS[r.cls]} for ${esc(profile().name.toLowerCase())}</h3>
-    <div class="muted">${when}</div>
+    <div class="muted">${when}</div>${lureHTML}
     <dl>${rows.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl>${extra}</div>`;
 }
 function openPopup(f, lngLat) {

@@ -85,6 +85,11 @@ select{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--lin
 .tag{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:0 5px;background:rgba(255,255,255,.35);margin-left:4px}
 .note .tag{background:rgba(124,45,18,.12)}
 .status.err{color:#b91c1c;font-weight:600;white-space:normal}
+.lure{margin-top:8px;border:1px solid var(--line);border-radius:10px;padding:7px 9px}
+.lure .lt{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700}
+.lure .lw{display:flex;align-items:center;gap:4px;margin:3px 0 2px;flex-wrap:wrap}
+.lure .lw b{margin-left:4px}
+.sw{display:inline-block;width:14px;height:14px;border-radius:50%;border:1px solid rgba(15,23,42,.25)}
 .sun{font-size:12px;color:var(--muted);white-space:nowrap}
 .loading{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:#f8fafc;transition:opacity .4s}
 .loading.hide{opacity:0;pointer-events:none}
@@ -178,6 +183,7 @@ select{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--lin
       <li><b>Vandkvalitet</b> (Miljøstyrelsen): dårlig økologisk tilstand giver højst gul.</li>
       <li><b>Fredningsbælter</b>, der gælder på den valgte dato, vises lilla og overstyrer alt. Zoner med særlige regler (fx fangstbegrænsning eller redskabsforbud, men stangfiskeri tilladt) får en orange kant. Store og uklare zoner er håndkontrolleret mod bekendtgørelserne, og popuppen viser, om en zone er kontrolleret.</li>
       <li>Klik på en kyststrækning for at se begrundelsen og hvilke faktorer, der trækker op og ned.</li>
+      <li><b>Blinkfarve (gæt):</b> Popuppen foreslår en farve på blink eller pirk ud fra lys, skydække, uklart vand, grønt vand (klorofyl), bund og havtemperatur. Det er lystfiskertradition, ikke målt viden, og det påvirker ikke farven på kortet.</li>
     </ul>
     <h4>Vigtigt</h4>
     <p>Kortet er et planlægningsværktøj og erstatter ikke de gældende regler. Tjek altid Fiskeristyrelsens regler og lokale skilte. Scoren er en hypotese, der endnu ikke er kalibreret mod fangster.</p>
