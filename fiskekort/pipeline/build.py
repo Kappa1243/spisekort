@@ -964,9 +964,47 @@ def oerred_class(d):
     return 0
 
 
+def fetch_oerred_kml():
+    """Hent alle stationer som KML via WMS GetMap (vektor-KML med attributter)."""
+    import xml.etree.ElementTree as ET  # noqa: PLC0415
+    r = get(OERRED_WMS, params={
+        "service": "WMS", "version": "1.1.1", "request": "GetMap", "layers": OERRED_LAYER, "styles": "",
+        "srs": "EPSG:4326", "bbox": f"{BBOX[0]},{BBOX[1]},{BBOX[2]},{BBOX[3]}", "width": 1024, "height": 768,
+        "format": "application/vnd.google-earth.kml+xml",
+        "format_options": "KMSCORE:100;KMATTR:true;MODE:download;SUPEROVERLAY:false"}, timeout=300, tries=2)
+    root = ET.fromstring(r.content)
+    ns = {"k": root.tag.split("}")[0].strip("{")} if root.tag.startswith("{") else {}
+    q = (lambda t: f"k:{t}") if ns else (lambda t: t)
+    out = []
+    for pm in root.iter(f"{{{ns['k']}}}Placemark" if ns else "Placemark"):
+        c = pm.find(f".//{q('Point')}/{q('coordinates')}", ns)
+        if c is None or not c.text:
+            continue
+        lon, lat = [float(v) for v in c.text.strip().split(",")[:2]]
+        props = {}
+        for sd in pm.iter(f"{{{ns['k']}}}SimpleData" if ns else "SimpleData"):
+            props[sd.get("name")] = sd.text
+        for d in pm.iter(f"{{{ns['k']}}}Data" if ns else "Data"):
+            v = d.find(q("value"), ns)
+            props[d.get("name")] = v.text if v is not None else None
+        x, y = TO_UTM.transform(lon, lat)
+        out.append({"type": "Feature", "geometry": {"type": "Point", "coordinates": [x, y]}, "properties": props})
+    DISCOVERY["oerred_kml"] = {"bytes": len(r.content), "placemarks": len(out),
+                               "fields": sorted({k for f in out[:200] for k in f["properties"]}),
+                               "head": r.text[:300] if not out else ""}
+    return out
+
+
 def fetch_oerred():
     """Ørredkortet (DTU Aqua): yngeltæthed ved ~5.600 stationer i vandløb, via WMS GetFeatureInfo
     på et 1x1-billede over hele Danmark i UTM (så koordinaterne kun afrundes til hele meter)."""
+    try:
+        kml = fetch_oerred_kml()
+    except Exception as e:  # noqa: BLE001
+        kml = []
+        log(f"Ørredkort som KML fejlede: {str(e)[:160]}")
+    if len(kml) >= 1000:
+        return _oerred_from_features(kml, failed=0)
     x0, y0 = TO_UTM.transform(BBOX[0], BBOX[1])
     x1, y1 = TO_UTM.transform(BBOX[2], BBOX[3])
     xa, xb = min(x0, x1) - 60000, max(x0, x1) + 60000
@@ -974,7 +1012,7 @@ def fetch_oerred():
     # Hele landet i én forespørgsel giver timeout på serveren, så der hentes i 5 x 4 felter.
     nx, ny = 5, 4
     feats, seen, failed = [], set(), 0
-    deadline = time.time() + 15 * 60  # samlet tidsbudget, så builden ikke hænger på en langsom server
+    deadline = time.time() + 8 * 60  # samlet tidsbudget, så builden ikke hænger på en langsom server
     for i in range(nx):
         for j in range(ny):
             if time.time() > deadline:
@@ -1002,6 +1040,10 @@ def fetch_oerred():
             time.sleep(1)
     if failed > 4:
         raise RuntimeError(f"{failed} af {nx * ny} felter fejlede")
+    return _oerred_from_features(feats, failed)
+
+
+def _oerred_from_features(feats, failed):
     out = []
     for f in feats:
         g = f.get("geometry") or {}
