@@ -928,35 +928,53 @@ OERRED_EPS = [
 ]
 
 
+OERRED_WMS = "https://geoserver.telemetry.fish/geoserver/wms"
+
+
+def wms_layers(ep):
+    r = get(ep, params={"service": "WMS", "version": "1.3.0", "request": "GetCapabilities"}, timeout=180, tries=2)
+    return re.findall(r"<Layer[^>]*>\s*<Name>([^<]+)</Name>\s*<Title>([^<]*)</Title>", r.text), r.text
+
+
+def wms_all_features(layer, bbox=BBOX, max_features=20000):
+    """Henter alle punkter i et WMS-lag via GetFeatureInfo på et 1x1-billede, der dækker hele bbox."""
+    lon0, lat0, lon1, lat1 = bbox
+    r = get(OERRED_WMS, params={
+        "service": "WMS", "version": "1.1.1", "request": "GetFeatureInfo", "layers": layer, "query_layers": layer,
+        "styles": "", "srs": "EPSG:4326", "bbox": f"{lon0},{lat0},{lon1},{lat1}", "width": 1, "height": 1,
+        "x": 0, "y": 0, "info_format": "application/json", "feature_count": max_features,
+        "buffer": 5000}, timeout=600, tries=2)
+    return r.json().get("features", [])
+
+
 def discover_oerred():
     """Find Ørredkortets lag på DTU Aquas GeoServer og gem en stikprøve af felterne."""
     out = {}
     for ep in OERRED_EPS:
         try:
-            names = wfs_layers(ep)
-            out[ep] = {"n_layers": len(names), "layers": names[:120]}
-            hits = [(n, t) for n, t in names if re.search(r"(ø|oe|o)rred|yngel|trout|fiskepleje|station", n + " " + t, re.I)]
-            out[ep]["hits"] = hits
-            for n, t in hits[:6]:
-                try:
-                    r = get(ep, params={"service": "WFS", "version": "2.0.0", "request": "GetFeature", "typeNames": n,
-                                        "outputFormat": "application/json", "srsName": "EPSG:4326", "count": 2000},
-                            timeout=300, tries=2)
-                    j = r.json()
-                    feats = j.get("features", [])
-                    props = [f.get("properties") or {} for f in feats]
-                    keys = sorted({k for p in props for k in p})
-                    out[ep].setdefault("samples", {})[n] = {
-                        "title": t, "count": len(feats), "total": j.get("totalFeatures") or j.get("numberMatched"),
-                        "geom": sorted({(f.get("geometry") or {}).get("type", "?") for f in feats}),
-                        "fields": keys,
-                        "distinct": {k: sorted({str(p.get(k))[:50] for p in props})[:20] for k in keys},
-                        "sample": props[:3]}
-                except Exception as e:  # noqa: BLE001
-                    out[ep].setdefault("samples", {})[n] = {"error": str(e)[:300]}
-            break
+            r = get(ep, params={"service": "WFS", "version": "2.0.0", "request": "GetCapabilities"}, timeout=120, tries=1)
+            out[ep] = {"status": r.status_code, "head": r.text[:400]}
         except Exception as e:  # noqa: BLE001
             out[ep] = {"error": str(e)[:300]}
+    try:
+        names, text = wms_layers(OERRED_WMS)
+        out["wms"] = {"n_layers": len(names), "layers": names[:150], "head": text[:300] if not names else ""}
+        hits = [(n, t) for n, t in names if re.search(r"(ø|oe|o)rred|yngel|trout|laks|fiskepleje|station", n + " " + t, re.I)]
+        out["wms"]["hits"] = hits
+        for n, t in hits[:6]:
+            try:
+                feats = wms_all_features(n)
+                props = [f.get("properties") or {} for f in feats]
+                keys = sorted({k for p in props for k in p})
+                out["wms"].setdefault("samples", {})[n] = {
+                    "title": t, "count": len(feats),
+                    "geom": sorted({(f.get("geometry") or {}).get("type", "?") for f in feats}),
+                    "fields": keys, "distinct": {k: sorted({str(p.get(k))[:50] for p in props})[:20] for k in keys},
+                    "sample": props[:3], "coords": [(f.get("geometry") or {}).get("coordinates") for f in feats[:2]]}
+            except Exception as e:  # noqa: BLE001
+                out["wms"].setdefault("samples", {})[n] = {"error": str(e)[:300]}
+    except Exception as e:  # noqa: BLE001
+        out["wms"] = {"error": str(e)[:300]}
     DISCOVERY["oerred"] = out
 
 
