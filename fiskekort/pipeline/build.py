@@ -969,13 +969,35 @@ def fetch_oerred():
     på et 1x1-billede over hele Danmark i UTM (så koordinaterne kun afrundes til hele meter)."""
     x0, y0 = TO_UTM.transform(BBOX[0], BBOX[1])
     x1, y1 = TO_UTM.transform(BBOX[2], BBOX[3])
-    r = get(OERRED_WMS, params={
-        "service": "WMS", "version": "1.1.1", "request": "GetFeatureInfo", "layers": OERRED_LAYER,
-        "query_layers": OERRED_LAYER, "styles": "", "srs": "EPSG:25832",
-        "bbox": f"{min(x0, x1) - 60000:.0f},{min(y0, y1):.0f},{max(x0, x1) + 60000:.0f},{max(y0, y1):.0f}",
-        "width": 1, "height": 1, "x": 0, "y": 0, "info_format": "application/json",
-        "feature_count": 20000, "buffer": 5000}, timeout=900, tries=2)
-    feats = r.json().get("features", [])
+    xa, xb = min(x0, x1) - 60000, max(x0, x1) + 60000
+    ya, yb = min(y0, y1), max(y0, y1)
+    # Hele landet i én forespørgsel giver timeout på serveren, så der hentes i 5 x 4 felter.
+    nx, ny = 5, 4
+    feats, seen, failed = [], set(), 0
+    for i in range(nx):
+        for j in range(ny):
+            bx0, bx1 = xa + (xb - xa) * i / nx, xa + (xb - xa) * (i + 1) / nx
+            by0, by1 = ya + (yb - ya) * j / ny, ya + (yb - ya) * (j + 1) / ny
+            try:
+                r = get(OERRED_WMS, params={
+                    "service": "WMS", "version": "1.1.1", "request": "GetFeatureInfo", "layers": OERRED_LAYER,
+                    "query_layers": OERRED_LAYER, "styles": "", "srs": "EPSG:25832",
+                    "bbox": f"{bx0:.0f},{by0:.0f},{bx1:.0f},{by1:.0f}",
+                    "width": 1, "height": 1, "x": 0, "y": 0, "info_format": "application/json",
+                    "feature_count": 20000, "buffer": 5000}, timeout=240, tries=3)
+                for f in r.json().get("features", []):
+                    p = f.get("properties") or {}
+                    key = (p.get("st_id"), p.get("bl_id"), json.dumps((f.get("geometry") or {}).get("coordinates")))
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    feats.append(f)
+            except Exception as e:  # noqa: BLE001
+                failed += 1
+                log(f"Ørredkort-felt {i},{j} fejlede: {str(e)[:120]}")
+            time.sleep(1)
+    if failed > 4:
+        raise RuntimeError(f"{failed} af {nx * ny} felter fejlede")
     out = []
     for f in feats:
         g = f.get("geometry") or {}
@@ -989,7 +1011,7 @@ def fetch_oerred():
         k = oerred_class(p.get("dens_m2"))
         out.append({"x": x, "y": y, "lon": lon, "lat": lat, "k": k, "d": p.get("dens_m2"),
                     "n": str(p.get("vs_navn") or "")[:60], "yr": str(p.get("dato") or "")[:4], "w": p.get("bredde")})
-    DISCOVERY["oerred"] = {"features": len(feats), "kept": len(out),
+    DISCOVERY["oerred"] = {"features": len(feats), "kept": len(out), "failed_tiles": failed,
                            "classes": {k: sum(1 for o in out if o["k"] == k) for k in range(-1, 5)}}
     log(f"Ørredkort: {len(out)} stationer {DISCOVERY['oerred']['classes']}")
     return out
