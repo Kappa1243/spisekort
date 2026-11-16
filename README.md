@@ -35,3 +35,7 @@ Et personligt kort over gode restauranter i København.
 ## Filmliste
 
 Mappen `film/` er en separat app: en Netflix-agtig oversigt over film og hvor de kan streames i Danmark (https://kappa1243.github.io/spisekort/film/). Se `film/README.md`.
+
+## Fiskekort
+
+Mappen `fiskekort/` er en separat app: et kort over den danske kyst, hvor hver strækning farves efter vind, kystens retning, fredningsbælter og vandkvalitet (https://kappa1243.github.io/spisekort/fiskekort/). Data bygges af GitHub Actions. Se `fiskekort/README.md`.

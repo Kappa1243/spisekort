@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f2a3a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Fiskekort">
+<title>Fiskekort – kystfiskeri i Danmark</title>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<style>
+:root{
+  --ink:#0f172a; --muted:#64748b; --line:#e2e8f0; --panel:rgba(255,255,255,.94);
+  --navy:#0f2a3a; --good:#16a34a; --ok:#eab308; --bad:#dc2626; --ban:#6d28d9; --none:#94a3b8;
+  --r:14px; --shadow:0 6px 24px rgba(15,23,42,.18);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+#map{position:fixed;inset:0}
+.maplibregl-ctrl-top-right{top:calc(58px + env(safe-area-inset-top))}
+.maplibregl-popup-close-button{font-size:22px;width:30px;height:30px;color:var(--muted)}
+
+/* topbar */
+.top{position:fixed;top:calc(10px + env(safe-area-inset-top));left:10px;right:10px;z-index:5;display:flex;gap:8px;align-items:flex-start;pointer-events:none}
+.brand{pointer-events:auto;background:var(--navy);color:#fff;border-radius:var(--r);padding:9px 13px;box-shadow:var(--shadow);display:flex;align-items:center;gap:8px;font-weight:700;letter-spacing:.2px;white-space:nowrap}
+.brand svg{width:20px;height:20px}
+.species{pointer-events:auto;background:var(--panel);backdrop-filter:blur(8px);border-radius:var(--r);box-shadow:var(--shadow);display:flex;padding:4px;gap:2px;overflow-x:auto;scrollbar-width:none}
+.species::-webkit-scrollbar{display:none}
+.species button{padding:7px 11px;border-radius:10px;font-size:14px;font-weight:600;color:var(--muted);white-space:nowrap}
+.species button[aria-pressed=true]{background:var(--navy);color:#fff}
+.iconbtn{pointer-events:auto;margin-left:auto;background:var(--panel);backdrop-filter:blur(8px);border-radius:var(--r);box-shadow:var(--shadow);width:42px;height:42px;display:grid;place-items:center;flex:none}
+.iconbtn svg{width:20px;height:20px}
+
+/* bundpanel */
+.bottom{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:5;background:var(--panel);backdrop-filter:blur(10px);border-radius:18px;box-shadow:var(--shadow);padding:12px 14px 12px;max-width:760px;margin:0 auto}
+.row{display:flex;align-items:center;gap:10px}
+.days{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.days::-webkit-scrollbar{display:none}
+.days button{flex:none;border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:13px;font-weight:600;color:var(--muted);background:#fff}
+.days button[aria-pressed=true]{background:var(--navy);border-color:var(--navy);color:#fff}
+.nowbtn{flex:none;font-size:13px;font-weight:700;color:var(--navy);border:1px solid var(--navy);border-radius:999px;padding:5px 11px}
+.timeline{margin-top:10px}
+.timeline input{width:100%;accent-color:var(--navy);height:28px}
+.clock{font-variant-numeric:tabular-nums;font-weight:800;font-size:20px;min-width:62px}
+.status{font-size:13px;color:var(--muted);flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:8px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{display:inline-block;width:18px;height:5px;border-radius:3px}
+.banner{margin-top:8px;font-size:12.5px;background:#fef3c7;color:#78350f;border-radius:10px;padding:7px 10px;display:none}
+.banner.show{display:block}
+
+/* popup */
+.maplibregl-popup-content{border-radius:14px;padding:14px 16px;box-shadow:var(--shadow);font-size:13.5px;min-width:230px}
+.pop h3{font-size:15px;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.pop .dot{width:12px;height:12px;border-radius:50%;flex:none}
+.pop dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin-top:6px}
+.pop dt{color:var(--muted)}
+.pop dd{font-weight:600}
+.pop .note{margin-top:8px;font-size:12.5px;color:#7c2d12;background:#ffedd5;border-radius:8px;padding:6px 8px}
+.pop .ban{margin-top:8px;font-size:12.5px;color:#fff;background:var(--ban);border-radius:8px;padding:6px 8px}
+.arrow{display:inline-block;transition:transform .2s}
+
+/* indstillinger */
+.sheet{position:fixed;inset:0;z-index:20;background:rgba(15,23,42,.35);display:none;align-items:flex-end;justify-content:center}
+.sheet.open{display:flex}
+.sheet .card{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:88vh;overflow:auto;padding:18px 18px calc(22px + env(safe-area-inset-bottom))}
+.sheet h2{font-size:18px;margin-bottom:4px}
+.sheet h4{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:16px 0 8px}
+.sheet p,.sheet li{font-size:14px;line-height:1.5;color:#334155}
+.sheet ul{padding-left:18px}
+.toggle{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:15px}
+.toggle input{width:20px;height:20px;accent-color:var(--navy)}
+.field{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;margin:6px 0;font-size:14px}
+.field input[type=range]{grid-column:1/-1;width:100%;accent-color:var(--navy)}
+.field output{font-weight:700;font-variant-numeric:tabular-nums}
+select{font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--line)}
+.close{float:right;font-size:26px;line-height:1;color:var(--muted)}
+.muted{color:var(--muted);font-size:12.5px}
+.loading{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:#f8fafc;transition:opacity .4s}
+.loading.hide{opacity:0;pointer-events:none}
+.loading div{font-weight:600;color:var(--muted)}
+@media (max-width:560px){
+  .brand span{display:none}
+  .clock{font-size:18px}
+}
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<div class="top">
+  <div class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12c3-5 8-6 12-4l6-3-2 7 2 7-6-3c-4 2-9 1-12-4z"/><circle cx="7.5" cy="11" r=".8" fill="currentColor"/></svg><span>Fiskekort</span></div>
+  <div class="species" id="species" role="group" aria-label="Art"></div>
+  <button class="iconbtn" id="openSettings" aria-label="Indstillinger og info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2" fill="#fff"/><circle cx="15" cy="12" r="2" fill="#fff"/><circle cx="8" cy="18" r="2" fill="#fff"/></svg></button>
+</div>
+
+<div class="bottom">
+  <div class="row">
+    <div class="days" id="days"></div>
+    <button class="nowbtn" id="now">Nu</button>
+  </div>
+  <div class="row timeline">
+    <div class="clock" id="clock">--:--</div>
+    <input type="range" id="hour" min="0" max="23" step="1" value="12" aria-label="Tidspunkt">
+  </div>
+  <div class="row"><div class="status" id="status">Henter data …</div></div>
+  <div class="legend">
+    <span><i style="background:var(--good)"></i>God</span>
+    <span><i style="background:var(--ok)"></i>Middel</span>
+    <span><i style="background:var(--bad)"></i>Dårlig</span>
+    <span><i style="background:var(--ban)"></i>Fiskeri forbudt</span>
+    <span><i style="background:var(--none)"></i>Ingen vind-data</span>
+  </div>
+  <div class="banner" id="banner"></div>
+</div>
+
+<div class="sheet" id="sheet" aria-hidden="true">
+  <div class="card">
+    <button class="close" id="closeSettings" aria-label="Luk">×</button>
+    <h2>Indstillinger</h2>
+    <p class="muted" id="metaInfo"></p>
+
+    <h4>Kortlag</h4>
+    <label class="toggle">Luftfoto <input type="checkbox" id="tSat"></label>
+    <label class="toggle">Fredningszoner <input type="checkbox" id="tFred" checked></label>
+    <label class="toggle">Vandkvalitet (VP3) <input type="checkbox" id="tVand"></label>
+    <div class="legend" style="margin:6px 0 2px">
+      <span><i style="background:#2563eb"></i>Høj</span><span><i style="background:#16a34a"></i>God</span>
+      <span><i style="background:#eab308"></i>Moderat</span><span><i style="background:#f97316"></i>Ringe</span>
+      <span><i style="background:#dc2626"></i>Dårlig</span>
+    </div>
+    <p class="muted">Økologisk tilstand i kystvandene (vandområdeplanerne 2021–2027). Dårlig tilstand giver højst gul. For fladfisk/torsk gælder det også dårlig bundfauna (tegn på iltsvind). Ringe tilstand vises kun i detaljerne: 80 af 109 kystvande er ringe eller dårlige, så et loft dér ville gøre næsten hele landet gult.</p>
+
+    <div id="customBox">
+      <h4>Egne grænser (art: Generelt)</h4>
+      <div class="field"><span>Ideel vind, fra</span><output id="oMin"></output><input type="range" id="cMin" min="0" max="12" step="0.5"></div>
+      <div class="field"><span>Ideel vind, til</span><output id="oMax"></output><input type="range" id="cMax" min="1" max="16" step="0.5"></div>
+      <div class="field"><span>For meget vind over</span><output id="oLim"></output><input type="range" id="cLim" min="4" max="20" step="0.5"></div>
+      <div class="field"><span>Foretrukken vindretning</span>
+        <select id="cDir">
+          <option value="on">Pålandsvind</option>
+          <option value="side">Sidevind</option>
+          <option value="any">Lige meget</option>
+          <option value="off">Fralandsvind</option>
+        </select>
+      </div>
+    </div>
+
+    <h4>Sådan beregnes farven</h4>
+    <ul>
+      <li>Kysten er delt i stykker på ca. 500 m. Hvert stykke kender sin retning ud mod vandet.</li>
+      <li>Vindprognosen (Open-Meteo, DMI HARMONIE de første ~2,5 døgn, derefter ECMWF) sammenlignes med retningen: <b>pålandsvind</b> (vinden blæser ind mod dig), <b>sidevind</b> eller <b>fralandsvind</b>.</li>
+      <li>Vindstyrken vurderes mod artens ideelle interval. Kraftige vindstød trækker ned.</li>
+      <li>Fredningsbælter, der gælder på den valgte dato, vises lilla og overstyrer alt. De fleste halvårlige bælter gælder 16/9–15/3. Zoner, hvor stangfiskeri er tilladt, tæller ikke som forbudt. Store reguleringsområder (over 10 km², fx dele af Roskilde, Præstø og Karrebæk Fjord) har redskabs- og fangstbegrænsninger og vises med orange stiplet omrids.</li>
+      <li>Vandkvaliteten (Miljøstyrelsen) sætter et loft: dårlig økologisk tilstand giver højst gul.</li>
+      <li>Klik på en kyststrækning for at se begrundelsen.</li>
+    </ul>
+    <h4>Vigtigt</h4>
+    <p>Kortet er et planlægningsværktøj og erstatter ikke de gældende regler. Tjek altid Fiskeristyrelsens regler og lokale skilte. Scoren er en hypotese, der endnu ikke er kalibreret mod fangster.</p>
+    <p class="muted" style="margin-top:10px">Data: © OpenStreetMap-bidragydere (ODbL) · Fiskeristyrelsen · Miljøstyrelsen · Vejr: Open-Meteo.com (CC BY 4.0), DMI · Kort: OpenFreeMap</p>
+  </div>
+</div>
+
+<div class="loading" id="loading"><div>Henter kyst og vind …</div></div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

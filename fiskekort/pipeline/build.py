@@ -418,12 +418,22 @@ PERIOD_RE = re.compile(r"(\d{1,2})\.?\s*([a-zæøå]{3})[a-zæøå]*\.?\s*(?:-|�
                        r"(?:og med\s*)?(\d{1,2})\.?\s*([a-zæøå]{3})", re.I)
 
 
+MONTH_ONLY_RE = re.compile(r"^\s*([a-zæøå]{3})[a-zæøå]*\s*(?:-|–|til|og)\s*([a-zæøå]{3})[a-zæøå]*\s*$", re.I)
+MONTH_DAYS = [0, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+
+
 def parse_periods(text: str):
     out = []
     for d1, m1, d2, m2 in PERIOD_RE.findall(text or ""):
         a, b = MONTHS.get(m1.lower()), MONTHS.get(m2.lower())
         if a and b:
             out.append([a, int(d1), b, int(d2)])
+    if not out:  # fx "November - marts", "April og maj"
+        m = MONTH_ONLY_RE.match(text or "")
+        if m:
+            a, b = MONTHS.get(m.group(1).lower()), MONTHS.get(m.group(2).lower())
+            if a and b:
+                out.append([a, 1, b, MONTH_DAYS[b]])
     return out
 
 
@@ -471,6 +481,9 @@ def classify_fred(title: str, attrs: dict) -> tuple[str, str]:
     return "saer", label
 
 
+OMR_KM2 = 10
+
+
 def build_fredning(layers):
     feats, seen = [], set()
     unparsed = defaultdict(int)
@@ -494,6 +507,16 @@ def build_fredning(layers):
                          "n": label[:120]}
                 if typ == "halv":
                     props["p"] = [[9, 16, 3, 15]]
+            # Store polygoner (fx Roskilde Fjord syd for Eskilsø, Karrebæk Fjord, Præstø Fjord) er
+            # reguleringsområder med redskabs- og fangstbegrænsninger – ikke fiskeforbud.
+            area_km2 = transform(TO_UTM.transform, g).area / 1e6
+            if area_km2 > OMR_KM2 and not props.get("stang"):
+                props["t"] = "omr"
+                props.pop("p", None)
+            lov = str(a.get("LOVGRUNDLA") or "").strip()
+            if lov:
+                props["lov"] = lov[:120]
+            props["km2"] = round(area_km2, 2)
             props["id"] = len(feats)
             g = g.simplify(0.00002)
             feats.append({"type": "Feature", "id": len(feats), "properties": props,
@@ -501,7 +524,7 @@ def build_fredning(layers):
     DISCOVERY["fred_period_texts"] = dict(sorted(texts.items(), key=lambda kv: -kv[1]))
     DISCOVERY["fred_unparsed"] = dict(unparsed)
     DISCOVERY["fred_types"] = {t: sum(1 for f in feats if f["properties"]["t"] == t)
-                               for t in ("hel", "per", "ukendt")}
+                               for t in ("hel", "per", "ukendt", "omr")}
     for f in feats:  # afrund koordinater
         geom = f["geometry"]
         if geom["type"] == "Polygon":
