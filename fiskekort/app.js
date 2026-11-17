@@ -22,11 +22,11 @@ const DIR_PRESETS = {
   off: { on: 0.4, side: 0.8, off: 1 },
 };
 const PALETTES = {
-  std: { 3: "#4ADE9B", 2: "#FACC4D", 1: "#FF6B6B", 9: "#B18CFF", 0: "#4B5D73" },
-  cb: { 3: "#56B4E9", 2: "#E69F00", 1: "#D55E00", 9: "#CC79A7", 0: "#5B6B7E" }, // Okabe-Ito, lyse varianter til mørk baggrund
+  std: { 3: "#16a34a", 2: "#eab308", 1: "#dc2626", 9: "#6d28d9", 0: "#94a3b8" },
+  cb: { 3: "#0072B2", 2: "#E69F00", 1: "#D55E00", 9: "#000000", 0: "#999999" }, // Okabe-Ito
 };
-const REG_COLOR = "#F2A65A";
-const OERRED_COLORS = { 4: "#9BE7FF", 3: "#4FC3F7", 2: "#2B7FB8", 1: "#3A4F66" };
+const REG_COLOR = "#ea580c", BAN_COLOR = "#6d28d9", SEL_COLOR = "#0f2a3a";
+const OERRED_COLORS = { 4: "#1d4ed8", 3: "#3b82f6", 2: "#93c5fd", 1: "#cbd5e1" };
 const LABELS = { 3: "God", 2: "Middel", 1: "Dårlig", 9: "Forbudt", 0: "Ukendt" };
 const DK_BOUNDS = [[8.0, 54.5], [15.2, 57.8]];
 const PAST_DAYS = 2, FORECAST_DAYS = 12; // i alt 14 døgn = ét Open-Meteo-kald pr. sted
@@ -490,6 +490,31 @@ function dayLabel(d, long = false) {
   const s = dt.toLocaleDateString("da-DK", long ? { weekday: "long", day: "numeric", month: "short" } : { weekday: "short", day: "numeric" }).replace(/\./g, "");
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
+// Dag-knapper over tidslinjen
+let daysSig = "";
+function renderDays() {
+  const el = $("days");
+  const days = [...new Set(futureIdx().map((t) => state.keys[t].slice(0, 10)))];
+  if (!days.length) days.push(state.day || todayStr());
+  const sig = days.join(",");
+  if (sig !== daysSig) {
+    daysSig = sig;
+    el.innerHTML = days.map((d) => `<button data-d="${d}">${esc(dayLabel(d))}</button>`).join("");
+    el.querySelectorAll("button").forEach((b) => { b.onclick = () => pickDay(b.dataset.d); });
+  }
+  let on = null;
+  el.querySelectorAll("button").forEach((b) => { const p = b.dataset.d === state.day; b.setAttribute("aria-pressed", p); if (p) on = b; });
+  if (on) {
+    const r = on.getBoundingClientRect(), box = el.getBoundingClientRect();
+    if (r.left < box.left || r.right > box.right) el.scrollLeft += r.left - box.left - 8;
+  }
+}
+function pickDay(d) {
+  // Behold klokkeslættet; i dag kan man ikke gå tilbage før nu.
+  let h = state.hour;
+  if (d === todayStr()) h = Math.max(h, nowHour());
+  setTime(d, h);
+}
 function setTime(day, hour) {
   state.day = day; state.hour = hour;
   update();
@@ -498,50 +523,21 @@ function setTime(day, hour) {
 // ------------------------------------------------------------------ kort
 let map, sel = null; // sel = valgt kyststrækning (feature)
 
-const SEA = "#0B1C2E", LAND = "#16212E";
 const FALLBACK_STYLE = {
   version: 8,
-  sources: { carto: { type: "raster", tiles: ["https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png", "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"], tileSize: 256, attribution: "© OpenStreetMap © CARTO" } },
-  layers: [{ id: "bg", type: "background", paint: { "background-color": SEA } }, { id: "carto", type: "raster", source: "carto", paint: { "raster-opacity": 0.85 } }],
+  sources: { carto: { type: "raster", tiles: ["https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png", "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png"], tileSize: 256, attribution: "© OpenStreetMap © CARTO" } },
+  layers: [{ id: "bg", type: "background", paint: { "background-color": "#f2f3f0" } }, { id: "carto", type: "raster", source: "carto" }],
 };
-
-// Henter OpenFreeMaps lyse "positron"-stil og farver den om til nattefarver.
-function darkify(st) {
-  for (const l of st.layers || []) {
-    const id = l.id.toLowerCase();
-    l.paint = l.paint || {};
-    const p = l.paint;
-    if (l.type === "background") p["background-color"] = LAND;
-    else if (l.type === "fill") {
-      delete p["fill-pattern"]; delete p["fill-outline-color"];
-      if (/water|ocean|sea|bay|lake|river/.test(id)) { p["fill-color"] = SEA; p["fill-opacity"] = 1; }
-      else if (/building/.test(id)) { p["fill-color"] = "#1D2938"; p["fill-opacity"] = 0.7; }
-      else { p["fill-color"] = "#1A2634"; p["fill-opacity"] = 0.6; }
-    } else if (l.type === "line") {
-      delete p["line-pattern"];
-      if (/water|river|stream|canal|ditch/.test(id)) p["line-color"] = "#14324D";
-      else if (/boundary|admin/.test(id)) p["line-color"] = "#34465C";
-      else { p["line-color"] = "#243245"; p["line-opacity"] = 0.9; }
-    } else if (l.type === "symbol") {
-      if (l.layout && l.layout["text-field"]) {
-        p["text-color"] = /water|ocean|sea|marine|bay|lake/.test(id) ? "#4F7AA0" : "#8597AD";
-        p["text-halo-color"] = SEA; p["text-halo-width"] = 1.2; p["text-halo-blur"] = 0.5;
-      }
-      p["icon-opacity"] = 0.45;
-    } else if (l.type === "fill-extrusion") {
-      l.layout = Object.assign({}, l.layout, { visibility: "none" });
-    }
-  }
-  return st;
-}
+const BASE_STYLE = "https://tiles.openfreemap.org/styles/positron";
 async function baseStyle() {
+  // OpenFreeMaps lyse "positron"-stil; Carto som reserve, hvis den ikke svarer.
   try {
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), 7000);
-    const r = await fetch("https://tiles.openfreemap.org/styles/positron", { signal: ctl.signal });
+    const r = await fetch(BASE_STYLE, { signal: ctl.signal });
     clearTimeout(timer);
     if (!r.ok) throw new Error(r.status);
-    return darkify(await r.json());
+    return await r.json();
   } catch {
     return FALLBACK_STYLE;
   }
@@ -561,16 +557,50 @@ async function initMap() {
   map.on("style.load", () => { addLayers(); lastSig = ""; update(); });
   map.on("moveend", () => { clearTimeout(areaTimer); areaTimer = setTimeout(() => { areaSig = ""; renderTimeline(); }, 250); });
 
-  const hit = (e) => {
-    const r = 12;
-    return map.queryRenderedFeatures([[e.point.x - r, e.point.y - r], [e.point.x + r, e.point.y + r]], { layers: ["coast"] })[0];
-  };
   map.on("click", (e) => {
-    const f = hit(e);
-    if (f) select(state.coast.features[f.properties.i]);
-    else select(null);
+    const hit = nearestCoast(e.point, COARSE ? 24 : 12);
+    if (!hit) { select(null); return; }
+    if (map.getZoom() < ZOOM_PICK) {
+      // Langt ude er en strækning på 500 m under én pixel bred: zoom ind, så man kan se, hvad man har valgt.
+      select(hit.f, hit.lngLat, false);
+      map.easeTo({ center: hit.lngLat, zoom: ZOOM_PICK + 1.5, duration: 600 });
+      map.once("moveend", fitPopup);
+    } else {
+      select(hit.f, hit.lngLat);
+    }
   });
-  map.on("mousemove", (e) => { map.getCanvas().style.cursor = hit(e) ? "pointer" : ""; });
+  map.on("mousemove", (e) => { map.getCanvas().style.cursor = nearestCoast(e.point, 10) ? "pointer" : ""; });
+}
+
+// Find den strækning, der ligger tættest på trykket (ikke bare den første i tegneordenen).
+const COARSE = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+const ZOOM_PICK = 8.5;
+function nearestCoast(pt, r) {
+  if (!map || !map.getLayer("coast")) return null;
+  const found = map.queryRenderedFeatures([[pt.x - r, pt.y - r], [pt.x + r, pt.y + r]], { layers: ["coast"] });
+  let best = null, bd = Infinity, bp = null;
+  const seen = new Set();
+  for (const q of found) {
+    const i = q.properties.i;
+    if (seen.has(i)) continue;
+    seen.add(i);
+    const f = state.coast.features[i];
+    if (!f) continue;
+    const cs = f.geometry.coordinates;
+    let prev = map.project(cs[0]);
+    for (let k = 1; k < cs.length; k++) {
+      const cur = map.project(cs[k]);
+      const dx = cur.x - prev.x, dy = cur.y - prev.y, L = dx * dx + dy * dy;
+      const u = L ? Math.max(0, Math.min(1, ((pt.x - prev.x) * dx + (pt.y - prev.y) * dy) / L)) : 0;
+      const x = prev.x + u * dx, y = prev.y + u * dy;
+      const d = (x - pt.x) ** 2 + (y - pt.y) ** 2;
+      if (d < bd) { bd = d; best = f; bp = [x, y]; }
+      prev = cur;
+    }
+  }
+  if (!best) return null;
+  const ll = map.unproject(bp);
+  return { f: best, lngLat: [ll.lng, ll.lat] };
 }
 
 function coastColorExpr() {
@@ -583,7 +613,7 @@ function addLayers() {
   const firstSymbol = (map.getStyle().layers.find((x) => x.type === "symbol") || {}).id;
   map.addSource("sat", { type: "raster", tileSize: 256, maxzoom: 18, attribution: "Luftfoto © Esri, Maxar, Earthstar Geographics",
     tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"] });
-  map.addLayer({ id: "sat", type: "raster", source: "sat", paint: { "raster-brightness-max": 0.75, "raster-saturation": -0.2 },
+  map.addLayer({ id: "sat", type: "raster", source: "sat", paint: { "raster-saturation": -0.1 },
     layout: { visibility: state.layers.sat ? "visible" : "none" } }, firstSymbol);
 
   if (state.vand) {
@@ -595,11 +625,11 @@ function addLayers() {
     const vis = { visibility: state.layers.fred ? "visible" : "none" };
     map.addSource("fred", { type: "geojson", data: state.fred, promoteId: "id" });
     map.addLayer({ id: "fred-fill", type: "fill", source: "fred", filter: ["!=", ["get", "t"], "omr"], layout: vis,
-      paint: { "fill-color": "#B18CFF", "fill-opacity": ["case", ["boolean", ["feature-state", "active"], false], 0.2, 0.05] } });
+      paint: { "fill-color": BAN_COLOR, "fill-opacity": ["case", ["boolean", ["feature-state", "active"], false], 0.18, 0.04] } });
     map.addLayer({ id: "fred-line", type: "line", source: "fred", filter: ["!=", ["get", "t"], "omr"], layout: vis,
-      paint: { "line-color": "#B18CFF", "line-width": 1, "line-opacity": ["case", ["boolean", ["feature-state", "active"], false], 0.7, 0.3] } });
+      paint: { "line-color": BAN_COLOR, "line-width": 1, "line-opacity": ["case", ["boolean", ["feature-state", "active"], false], 0.6, 0.25] } });
     map.addLayer({ id: "fred-omr", type: "line", source: "fred", filter: ["==", ["get", "t"], "omr"], layout: vis,
-      paint: { "line-color": REG_COLOR, "line-width": 1.2, "line-opacity": 0.6, "line-dasharray": [3, 2] } });
+      paint: { "line-color": REG_COLOR, "line-width": 1.5, "line-opacity": 0.8, "line-dasharray": [3, 2] } });
   }
   if (state.oerred) {
     // Ørredkortet: vandløbsstationer farvet efter yngeltæthed (DTU Aquas klasser).
@@ -608,7 +638,7 @@ function addLayers() {
       layout: { visibility: state.layers.oerred ? "visible" : "none", "circle-sort-key": ["get", "k"] },
       paint: { "circle-color": ["match", ["get", "k"], 4, OERRED_COLORS[4], 3, OERRED_COLORS[3], 2, OERRED_COLORS[2], OERRED_COLORS[1]],
         "circle-radius": ["interpolate", ["linear"], ["zoom"], 7, ["match", ["get", "k"], 4, 3, 3, 2.6, 2, 2, 1.6], 12, ["match", ["get", "k"], 4, 7, 3, 6, 2, 5, 4]],
-        "circle-stroke-color": SEA, "circle-stroke-width": 1, "circle-opacity": 0.95 } });
+        "circle-stroke-color": "#ffffff", "circle-stroke-width": 1, "circle-opacity": 0.95 } });
   }
   map.addSource("coast", { type: "geojson", data: state.coast, promoteId: "i", tolerance: 0.2 });
   // Zoom må kun stå øverst i et interpolate-udtryk, så hver bredde bygges som sit eget udtryk.
@@ -617,13 +647,10 @@ function addLayers() {
   const width = W((w) => w);
   const reg = ["boolean", ["feature-state", "reg"], false];
   const on = ["boolean", ["feature-state", "sel"], false];
-  // Glød under kysten – "lysende kyst" mod det mørke hav.
-  map.addLayer({ id: "coast-glow", type: "line", source: "coast", layout: { "line-cap": "round", "line-join": "round" },
-    paint: { "line-color": coastColorExpr(), "line-width": W((w) => w * 3), "line-blur": W((w) => w * 1.6), "line-opacity": 0.32 } });
   map.addLayer({ id: "coast-sel", type: "line", source: "coast", layout: { "line-cap": "round", "line-join": "round" },
-    paint: { "line-color": "#E8EEF5", "line-width": W((w) => w + 7), "line-opacity": ["case", on, 1, 0] } });
+    paint: { "line-color": SEL_COLOR, "line-width": W((w) => w + 7), "line-opacity": ["case", on, 0.9, 0] } });
   map.addLayer({ id: "coast-casing", type: "line", source: "coast", layout: { "line-cap": "round", "line-join": "round" },
-    paint: { "line-color": ["case", reg, REG_COLOR, SEA], "line-width": W((w) => ["case", reg, w + 4, w + 2]), "line-opacity": 0.95 } });
+    paint: { "line-color": ["case", reg, REG_COLOR, "#ffffff"], "line-width": W((w) => ["case", reg, w + 4, w + 2]), "line-opacity": 0.95 } });
   map.addLayer({ id: "coast", type: "line", source: "coast", layout: { "line-cap": "round", "line-join": "round" },
     paint: { "line-width": width, "line-color": coastColorExpr() } });
 }
@@ -633,33 +660,58 @@ function applyPalette() {
   const c = colors();
   const root = document.documentElement.style;
   root.setProperty("--good", c[3]); root.setProperty("--ok", c[2]); root.setProperty("--bad", c[1]); root.setProperty("--ban", c[9]); root.setProperty("--none", c[0]);
-  if (map && map.getLayer("coast")) { map.setPaintProperty("coast", "line-color", coastColorExpr()); map.setPaintProperty("coast-glow", "line-color", coastColorExpr()); }
+  if (map && map.getLayer("coast")) map.setPaintProperty("coast", "line-color", coastColorExpr());
   renderCard();
 }
-function dockHeight() { const d = document.querySelector(".dock-inner"); return d ? d.getBoundingClientRect().height : 170; }
-function syncDockHeight() { document.documentElement.style.setProperty("--dock-h", `${Math.round(dockHeight()) + 8}px`); }
+function dockHeight() { const d = document.querySelector(".dock-inner"); return d ? d.getBoundingClientRect().height : 150; }
+function syncDockHeight() {
+  const root = document.documentElement.style;
+  root.setProperty("--dock-h", `${Math.round(dockHeight()) + 8}px`);
+  // Popup'en må højst være så høj, at den kan stå mellem toplinjen og bundpanelet.
+  const top = document.querySelector(".top").getBoundingClientRect().bottom;
+  root.setProperty("--pop-max", `${Math.max(180, Math.round(window.innerHeight - top - dockHeight() - 60))}px`);
+}
 
 // ------------------------------------------------------------------ valg af strækning
-function select(f) {
+let popup = null, popAt = null, detailsOpen = false;
+function select(f, lngLat, fit = true) {
   if (sel && map.getSource("coast")) map.setFeatureState({ source: "coast", id: sel.properties.i }, { sel: false });
   sel = f;
   if (sel) {
     map.setFeatureState({ source: "coast", id: sel.properties.i }, { sel: true });
-    renderCard();
     const cs = sel.geometry.coordinates;
-    const mid = cs[Math.floor(cs.length / 2)];
-    requestAnimationFrame(() => {
-      syncDockHeight();
-      const p = map.project(mid);
-      const bottom = window.innerHeight - dockHeight() - 24;
-      if (p.y > bottom || p.y < 80) map.easeTo({ center: mid, padding: { top: 70, bottom: dockHeight() + 20, left: 0, right: 0 }, duration: 400 });
-    });
-  } else {
+    popAt = lngLat || cs[Math.floor(cs.length / 2)];
+    if (!popup) {
+      popup = new maplibregl.Popup({ anchor: "bottom", offset: 10, maxWidth: "none", closeButton: false, closeOnClick: false, focusAfterOpen: false, className: "fk-pop" });
+    }
+    popup.setLngLat(popAt);
     renderCard();
+    if (!popup.isOpen()) popup.addTo(map);
+    if (fit) requestAnimationFrame(fitPopup);
+  } else {
+    if (popup) popup.remove();
+    popAt = null;
   }
   areaSig = "";
   renderTimeline();
   renderCaption(currentT());
+}
+
+// Flyt kortet, så hele popup'en står mellem toplinjen, bundpanelet og skærmens kanter.
+function fitPopup() {
+  if (!popup || !popup.isOpen()) return;
+  const r = popup.getElement().getBoundingClientRect();
+  const topLimit = document.querySelector(".top").getBoundingClientRect().bottom + 8;
+  const dock = document.querySelector(".dock-inner").getBoundingClientRect();
+  const W = window.innerWidth, H = window.innerHeight, m = 8;
+  let dx = 0, dy = 0;
+  if (r.left < m) dx = r.left - m; else if (r.right > W - m) dx = r.right - (W - m);
+  const left = r.left - dx, right = r.right - dx;
+  const overDock = right > dock.left && left < dock.right;
+  const bottomLimit = (overDock ? dock.top : H) - m;
+  if (r.top < topLimit) dy = r.top - topLimit;
+  else if (r.bottom > bottomLimit) dy = Math.min(r.bottom - bottomLimit, r.top - topLimit);
+  if (Math.abs(dx) > 1 || Math.abs(dy) > 1) map.panBy([dx, dy], { duration: 350 });
 }
 
 // ------------------------------------------------------------------ opdatering
@@ -667,8 +719,10 @@ let lastSig = "";
 function update() {
   const t = currentT();
   renderWhen(t);
+  renderDays();
   renderTimeline();
   renderCaption(t);
+  syncDockHeight();
   if (!map || !map.getSource("coast") || !state.coast) { renderCard(); return; }
   const sig = [t, state.species, JSON.stringify(state.custom), state.day, !!state.sp].join("|");
   if (sig !== lastSig) {
@@ -687,7 +741,7 @@ function update() {
 
 function renderWhen(t) {
   const d = state.day || todayStr();
-  $("when").textContent = `${dayLabel(d)}, ${pad(state.hour)}:00`;
+  $("when").textContent = `${dayLabel(d, true)}, kl. ${pad(state.hour)}:00`;
   $("now").hidden = d === todayStr() && state.hour === nowHour();
 }
 
@@ -798,6 +852,8 @@ function bindTimeline() {
   const el = $("tl");
   const pick = (x, y) => {
     const target = document.elementFromPoint(x, y);
+    const lbl = target && target.closest ? target.closest(".dl") : null;
+    if (lbl) { pickDay(lbl.dataset.d); return; }
     let b = target && target.closest ? target.closest(".bars i") : null;
     if (!b) {
       // mellem søjlerne: tag nærmeste
@@ -847,8 +903,7 @@ function speciesReminder(dateStr) {
 }
 
 function renderCard() {
-  const el = $("card");
-  if (!sel) { el.hidden = true; el.innerHTML = ""; syncDockHeight(); return; }
+  if (!sel || !popup) return;
   const t = currentT();
   const r = evaluate(sel, t);
   const pr = sel.properties;
@@ -920,15 +975,21 @@ function renderCard() {
   if (pr.s) rows.push(["Bund", SUBSTRATE[pr.s] || "–"]);
   if (r.vand) rows.push(["Vandkvalitet", `${esc(r.vand.label || "Ukendt")}${r.vand.n ? ` (${esc(r.vand.n)})` : ""}`]);
   if (pr.oh || pr.om) rows.push(["Ørredvandløb inden for 10 km", `${pr.oh || 0} gode/høje, ${pr.om || 0} moderate`]);
-  const details = rows.length ? `<details><summary>Detaljer</summary><dl>${rows.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl></details>` : "";
+  const details = rows.length ? `<details${detailsOpen ? " open" : ""}><summary>Detaljer</summary><dl>${rows.map(([a, b]) => `<dt>${a}</dt><dd>${b}</dd>`).join("")}</dl></details>` : "";
 
-  el.innerHTML = `<div class="card-head"><div><div class="verdict" style="color:${c[r.cls]}">${LABELS[r.cls]}</div>` +
+  const html = `<div class="pop" aria-live="polite"><div class="card-head"><div><div class="verdict" style="color:${c[r.cls]}">${LABELS[r.cls]}</div>` +
     `<div class="for">for ${esc(profile().name.toLowerCase())}, ${esc(when)}</div></div>` +
     `<button class="close" id="closeCard" aria-label="Luk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>` +
-    `<p class="why">${esc(why)}</p>${near}${lure}${chips}${rules.length ? `<div class="rules">${rules.join("")}</div>` : ""}${details}`;
-  el.hidden = false;
-  $("closeCard").onclick = () => select(null);
-  syncDockHeight();
+    `<p class="why">${esc(why)}</p>${near}${lure}${chips}${rules.length ? `<div class="rules">${rules.join("")}</div>` : ""}${details}</div>`;
+  const old = popup.getElement() && popup.getElement().querySelector(".pop");
+  const scroll = old ? old.scrollTop : 0;
+  const wrap = document.createElement("div");
+  wrap.innerHTML = html;
+  wrap.querySelector("#closeCard").onclick = () => select(null);
+  const det = wrap.querySelector("details");
+  if (det) det.addEventListener("toggle", () => { detailsOpen = det.open; });
+  popup.setDOMContent(wrap);
+  wrap.firstChild.scrollTop = scroll;
 }
 
 // ------------------------------------------------------------------ indstillinger og arter
