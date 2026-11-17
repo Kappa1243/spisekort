@@ -21,7 +21,7 @@
   --top-h:calc(64px + env(safe-area-inset-top));
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none;background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 button:focus-visible,summary:focus-visible,[tabindex]:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--navy);outline-offset:2px;border-radius:6px}
 a{color:inherit}
@@ -69,7 +69,9 @@ a{color:inherit}
 /* ---------- svarkort (popup ved stedet) ---------- */
 .fk-pop{z-index:4}
 .fk-pop .maplibregl-popup-content{padding:0;border-radius:var(--r-md);box-shadow:var(--shadow)}
-.pop{padding:14px 16px 4px;width:min(320px,calc(100vw - 32px));max-height:var(--pop-max,60vh);overflow-y:auto;font-size:14px}
+.pop{padding:14px 16px 4px;width:min(320px,calc(100vw - 32px));max-height:var(--pop-max,60vh);overflow-y:auto;font-size:14px;
+  /* Scroll inde i popup'en bliver i popup'en – den må ikke trække siden eller kortet med. */
+  overscroll-behavior:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y}
 .card-head{display:flex;align-items:flex-start;gap:10px}
 .verdict{font-size:24px;line-height:1.1;font-weight:800}
 .for{color:var(--dim);font-size:13px;margin-top:3px}

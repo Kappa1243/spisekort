@@ -697,7 +697,10 @@ function select(f, lngLat, fit = true) {
   renderCaption(currentT());
 }
 
+const isMobile = () => window.innerWidth <= 560;
+
 // Flyt kortet, så hele popup'en står mellem toplinjen, bundpanelet og skærmens kanter.
+// På mobil centreres popup'en vandret og lodret i det frie felt mellem toplinjen og bundpanelet.
 function fitPopup() {
   if (!popup || !popup.isOpen()) return;
   const r = popup.getElement().getBoundingClientRect();
@@ -705,12 +708,19 @@ function fitPopup() {
   const dock = document.querySelector(".dock-inner").getBoundingClientRect();
   const W = window.innerWidth, H = window.innerHeight, m = 8;
   let dx = 0, dy = 0;
-  if (r.left < m) dx = r.left - m; else if (r.right > W - m) dx = r.right - (W - m);
-  const left = r.left - dx, right = r.right - dx;
-  const overDock = right > dock.left && left < dock.right;
-  const bottomLimit = (overDock ? dock.top : H) - m;
-  if (r.top < topLimit) dy = r.top - topLimit;
-  else if (r.bottom > bottomLimit) dy = Math.min(r.bottom - bottomLimit, r.top - topLimit);
+  if (isMobile()) {
+    const free = dock.top - m - topLimit;
+    const targetTop = topLimit + Math.max(0, (free - r.height) / 2);
+    dx = (r.left + r.width / 2) - W / 2;
+    dy = r.top - targetTop;
+  } else {
+    if (r.left < m) dx = r.left - m; else if (r.right > W - m) dx = r.right - (W - m);
+    const left = r.left - dx, right = r.right - dx;
+    const overDock = right > dock.left && left < dock.right;
+    const bottomLimit = (overDock ? dock.top : H) - m;
+    if (r.top < topLimit) dy = r.top - topLimit;
+    else if (r.bottom > bottomLimit) dy = Math.min(r.bottom - bottomLimit, r.top - topLimit);
+  }
   if (Math.abs(dx) > 1 || Math.abs(dy) > 1) map.panBy([dx, dy], { duration: 350 });
 }
 
@@ -988,6 +998,7 @@ function renderCard() {
   wrap.querySelector("#closeCard").onclick = () => select(null);
   const det = wrap.querySelector("details");
   if (det) det.addEventListener("toggle", () => { detailsOpen = det.open; });
+  for (const ev of ["touchstart", "touchmove", "wheel", "dblclick", "mousedown"]) wrap.addEventListener(ev, (e) => e.stopPropagation(), { passive: true });
   popup.setDOMContent(wrap);
   wrap.firstChild.scrollTop = scroll;
 }
